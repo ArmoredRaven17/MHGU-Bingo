@@ -187,7 +187,7 @@
   // Order-independent description of everything that changes which goals are eligible.
   // Hashed into the seed's last segment so a pasted seed can warn that it was built under
   // different settings. Advisory only — never a correctness gate.
-  function fingerprint(f, range) {
+  function fingerprint(f, range, pool) {
     return [
       "d" + DATA.dataVersion,
       "T" + range.type + ":" + range.fromLv + "-" + range.toLv,
@@ -197,7 +197,7 @@
       "S" + f.styles.slice().sort().join("."),
       "F" + ["large","keysOnly","hyper","capture","egg","gathering","small","multi","oneFaint","onSite","pQuests"]
         .map(k => f[k] ? 1 : 0).join(""),
-      "C" + customPool.filter(c => c.checked).map(c => c.text + "@" + c.weight).sort().join("."),
+      "C" + pool.filter(c => c.checked).map(c => c.text + "@" + c.weight).sort().join("."),
     ].join("|");
   }
 
@@ -379,28 +379,31 @@
       .map(o => ({ key: "o:" + o.id, cat: "objective", text: o.text, sub: "", icon: o.icon, tint: CAT_COLORS.objective }));
   }
 
-  function customGoals() {
-    return customPool.filter(c => c.checked && c.text.trim())
+  function customGoals(pool) {
+    return pool.filter(c => c.checked && c.text.trim())
       .map(c => ({ key: "c:" + c.text, cat: "custom", text: c.text, sub: "", icon: "",
                    tint: CAT_COLORS.custom, w: c.weight || 1 }));
   }
 
+  // Custom entries arrive as a parameter rather than being read from module state, so a
+  // card can be built from the DEFAULT pool without disturbing the user's own — that's
+  // what lets a bot seed rebuild exactly. Mirrors worker/src/bingo-gen.js.
   const CATS = [
-    { id:"monster",   label:"Monsters",   items:(pool)    => monsterGoals(pool) },
-    { id:"weapon",    label:"Weapons",    items:(pool, f) => weaponGoals(pool, f) },
-    { id:"objective", label:"Objectives", items:(pool)    => objectiveGoals(pool) },
-    { id:"custom",    label:"Custom",     items:()        => customGoals() },
+    { id:"monster",   label:"Monsters",   items:(pool)        => monsterGoals(pool) },
+    { id:"weapon",    label:"Weapons",    items:(pool, f)     => weaponGoals(pool, f) },
+    { id:"objective", label:"Objectives", items:(pool)        => objectiveGoals(pool) },
+    { id:"custom",    label:"Custom",     items:(pool, f, cp) => customGoals(cp) },
   ];
 
   // ── Card construction ──────────────────────────────────────────────────────
-  function buildCells(rng, c, pool, f) {
+  function buildCells(rng, c, pool, f, cp) {
     const n = c.size * c.size;
     const freeIdx = effFree(c) ? (n - 1) / 2 : -1;
     const need = n - (freeIdx >= 0 ? 1 : 0);
     const active = CATS.filter(x => (c.cats[x.id] | 0) > 0);
 
     const localBags = {};
-    for (const x of active) localBags[x.id] = weightedShuffle(x.items(pool, f), rng);
+    for (const x of active) localBags[x.id] = weightedShuffle(x.items(pool, f, cp), rng);
 
     const used = new Set(), drawn = [];
     // Each pass either consumes a goal or breaks, so this always terminates: the result
@@ -428,15 +431,35 @@
     return { cells, freeIdx, need, filled: drawn.length, bags: localBags, used };
   }
 
-  function generate(token, cfgOverride) {
-    if (cfgOverride) cfg = cfgOverride;
-    const f = currentFilters();
-    const range = currentRange();
+  // The settings a first-time visitor has, matching doReset(). Cards rolled by the Twitch
+  // bot are built from exactly these, server-side — which is what makes the seed it prints
+  // reproducible here (see applySeed).
+  const DEFAULT_RANGE = { type: "ALL", fromLv: 0, toLv: 45 };
+  function defaultFilters() {
+    return {
+      large: true, keysOnly: false, hyper: true, capture: true, egg: true, gathering: true,
+      small: true, multi: true, oneFaint: true, onSite: true, pQuests: false,
+      allLevels: null,
+      includedMonsters: new Set(DATA.monsters.map(m => m.MonsterName.toLowerCase())),
+      monsterFilterActive: false,
+      weapons: WEAPONS, styles: STYLES,
+    };
+  }
+
+  function generate(token, opts) {
+    const o = opts || {};
+    if (o.cfg) cfg = o.cfg;
+    // A seed made under default settings is rebuilt under default settings, whatever the
+    // viewer has configured locally — otherwise a seed from chat quietly produces a
+    // different board for anyone who has customised their pools.
+    const f = o.defaults ? defaultFilters() : currentFilters();
+    const range = o.defaults ? DEFAULT_RANGE : currentRange();
+    const cp = o.defaults ? DEFAULT_POOL : customPool;
     const pool = buildQuestPool(f, range);
     const body = seedBody(cfg, token);
-    const fp = b32(hashStr(fingerprint(f, range)), 4);
+    const fp = b32(hashStr(fingerprint(f, range, cp)), 4);
     const rng = makeRng(body);                       // NOT including the fingerprint
-    const built = buildCells(rng, cfg, pool, f);
+    const built = buildCells(rng, cfg, pool, f, cp);
 
     bags = built.bags;
     usedKeys = built.used;
@@ -453,7 +476,9 @@
       short: built.need - built.filled,
     };
     sharedView = false;
-    try { localStorage.removeItem(SHARE_KEY); } catch (e) {}
+    // The published code is deliberately NOT cleared here. It's a permanent slot for the
+    // stream — !currentcard points at it and !setcurrentcard rolls into it — so it has to
+    // outlive individual cards, otherwise those bot commands go stale on every New Card.
     renderCard();
     saveCard();
   }
@@ -612,6 +637,9 @@
         btn: card.cfg.size > 3 ? ["Use " + (card.cfg.size - 1) + "×" + (card.cfg.size - 1), () => { cfg.size = card.cfg.size - 1; $("gridSize").value = cfg.size; syncFreeSpace(); saveSettings(); generate(newToken()); }] : null,
       });
     }
+    if (card && card.builtFromDefaults) {
+      msgs.push({ text: "Built from that seed using the default pools and filters, so it matches the original exactly.", btn: null });
+    }
     if (card && card.pastedFpMismatch) {
       msgs.push({ text: "That seed was made with different settings, so your card may not match theirs.", btn: null });
     }
@@ -711,7 +739,7 @@
     const pool = buildQuestPool(f, currentRange());
     let total = 0;
     for (const c of CATS) {
-      const n = (cfg.cats[c.id] | 0) > 0 ? c.items(pool, f).length : 0;
+      const n = (cfg.cats[c.id] | 0) > 0 ? c.items(pool, f, customPool).length : 0;
       total += n;
       const el = $("count_" + c.id);
       if (el) el.textContent = (cfg.cats[c.id] | 0) > 0 ? String(n) : "off";
@@ -1004,17 +1032,49 @@
     bags = {};
     for (const c of CATS) {
       if ((card ? card.cfg.cats[c.id] : cfg.cats[c.id]) | 0) {
-        bags[c.id] = weightedShuffle(c.items(pool, f).filter(g => !usedKeys.has(g.key)), rng);
+        // Rerolls always draw from the user's own custom pool. A reroll already voids the
+        // seed (the card is flagged "edited"), so there's nothing to keep in sync here.
+        bags[c.id] = weightedShuffle(c.items(pool, f, customPool).filter(g => !usedKeys.has(g.key)), rng);
       }
     }
   }
 
   // ── Sharing ────────────────────────────────────────────────────────────────
+  // The Twitch button is NOT a login — this app has no accounts. It opens a modal of
+  // ready-to-paste bot URLs. !bingo needs nothing at all, so its command is always shown;
+  // publishing is an explicit action because it's the only part that hits the network.
+  function openTwitchModal() {
+    const cmd = $("bingoCmdRow");
+    cmd.textContent = "";
+    addCommandPair(cmd, BOT_API_ORIGIN + "/bingo");
+
+    // generate() clears the stored code, so a code present here always refers to the card
+    // currently on screen.
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(SHARE_KEY) || "null"); } catch (e) {}
+    if (stored && stored.code) showPublished(stored.code, stored.key);
+    else { resetPublishArea(); $("setCardSection").classList.add("hidden"); }
+
+    $("twitchModal").classList.remove("hidden");
+  }
+
+  function resetPublishArea(label) {
+    const area = $("publishArea");
+    area.textContent = "";
+    const btn = document.createElement("button");
+    btn.className = "btn";
+    btn.textContent = label || "Publish this card";
+    btn.addEventListener("click", publishCard);
+    area.appendChild(btn);
+    $("setCardSection").classList.add("hidden");
+  }
+
   async function publishCard() {
-    const body = $("shareBody");
+    if (!card) return;
+    const body = $("publishArea");
     body.textContent = "";
     const p = document.createElement("p");
-    p.textContent = "Uploading…";
+    p.textContent = "Publishing…";
     body.appendChild(p);
 
     let stored = null;
@@ -1034,40 +1094,62 @@
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
       const out = await res.json();
-      try { localStorage.setItem(SHARE_KEY, JSON.stringify({ code: out.code, key: out.key || (stored && stored.key) })); } catch (e) {}
-      showShare(out.code);
+      const key = out.key || (stored && stored.key);
+      try { localStorage.setItem(SHARE_KEY, JSON.stringify({ code: out.code, key })); } catch (e) {}
+      showPublished(out.code, key);
     } catch (e) {
       body.textContent = "";
       const err = document.createElement("p");
-      err.textContent = "Couldn't upload the card. Check your connection and try again — the seed in the title bar still works for anyone whose settings match yours.";
+      err.className = "hint";
+      err.textContent = "Couldn't reach the bot API, so this card isn't published. !bingo above still works — it doesn't need anything from this app.";
       body.appendChild(err);
+      resetPublishArea("Try again");
+      // resetPublishArea wipes the area, so put the explanation back above the button.
+      body.insertBefore(err, body.firstChild);
     }
   }
 
-  function showShare(code) {
-    const body = $("shareBody");
+  function showPublished(code, key) {
+    const body = $("publishArea");
     body.textContent = "";
-    const url = location.origin + location.pathname + "?c=" + code;
+    addCopyRow(body, "Link", location.origin + location.pathname + "?c=" + code);
+    addCommandPair(body, BOT_API_ORIGIN + "/bingo-link?c=" + code);
     const p = document.createElement("p");
-    p.textContent = "Anyone with this link gets the exact card, custom squares and all — unlike the seed, which only rebuilds it for someone whose settings match yours.";
+    p.className = "hint";
+    p.textContent = "This link carries the exact card, custom squares and all — unlike the seed, which only rebuilds it for someone on the default pools and filters.";
     body.appendChild(p);
-    addCopyRow(body, "Link", url);
+    const again = document.createElement("button");
+    again.className = "btn tiny";
+    again.textContent = "Put the card on screen here";
+    again.title = "Copy the card currently on screen into this link";
+    again.addEventListener("click", publishCard);
+    body.appendChild(again);
 
-    const h = document.createElement("h3");
-    h.textContent = "Twitch commands";
-    body.appendChild(h);
+    // !setcurrentcard needs the write key, so it only appears once we hold one.
+    const sec = $("setCardSection"), row = $("setCardRow");
+    if (key) {
+      row.textContent = "";
+      addCommandPair(row, BOT_API_ORIGIN + "/bingo-set?c=" + code + "&key=" + key);
+      sec.classList.remove("hidden");
+    } else {
+      sec.classList.add("hidden");
+    }
+  }
 
-    const p2 = document.createElement("p");
-    p2.className = "hint";
-    p2.textContent = "!bingo — rolls a brand-new card for whoever runs it, and prints its seed so chat can rebuild the same board:";
-    body.appendChild(p2);
-    addCopyRow(body, "!bingo command", "$(urlfetch " + BOT_API_ORIGIN + "/bingo)");
-
-    const p3 = document.createElement("p");
-    p3.className = "hint";
-    p3.textContent = "!mycard — always points at the card above, so chat can follow along with yours:";
-    body.appendChild(p3);
-    addCopyRow(body, "!mycard command", "$(urlfetch " + BOT_API_ORIGIN + "/bingo-link?c=" + code + ")");
+  // Nightbot pastes the whole $(urlfetch ...) line in as the command; Moobot and most
+  // others need the bare URL in their own fetch tag. Listing only the Nightbot form sends
+  // Moobot users down a dead end, so show both — same as the Quest Randomizer's bot modal.
+  function addCommandPair(host, url) {
+    const label = (text) => {
+      const p = document.createElement("p");
+      p.className = "cmd-desc";
+      p.textContent = text;
+      host.appendChild(p);
+    };
+    label("Nightbot");
+    addCopyRow(host, "Nightbot command", "$(urlfetch " + url + ")");
+    label("Moobot / plain URL");
+    addCopyRow(host, "plain URL", url);
   }
 
   function addCopyRow(host, label, value) {
@@ -1374,17 +1456,13 @@
       });
     });
 
-    $("shareBtn").addEventListener("click", () => {
-      if (!card) return;
-      $("shareModal").classList.remove("hidden");
-      publishCard();
-    });
+    $("twitchBtn").addEventListener("click", openTwitchModal);
 
     wireModal("helpModal", "helpBtn", "helpClose");
     wireModal("themeModal", "themeBtn", "themeClose");
     wireModal("linksModal", "linksBtn", "linksClose");
     wireModal("poolModal", null, "poolModalClose");
-    wireModal("shareModal", null, "shareClose");
+    wireModal("twitchModal", null, "twitchClose");
 
     // A shared link wins over whatever card is stored locally.
     const code = new URLSearchParams(location.search).get("c");
@@ -1403,6 +1481,13 @@
     else generate(newToken());
   }
 
+  // What the fingerprint looks like for an untouched install. A pasted seed carrying this
+  // was built from default settings — by the Twitch bot, or by someone who hasn't changed
+  // anything — so it can be reproduced exactly by rebuilding under those same defaults.
+  let defaultFp = null;
+  const defaultFingerprint = () => defaultFp !== null ? defaultFp
+    : (defaultFp = b32(hashStr(fingerprint(defaultFilters(), DEFAULT_RANGE, DEFAULT_POOL)), 4));
+
   function applySeed() {
     const raw = $("seedInput").value;
     if (!raw.trim()) return;
@@ -1415,13 +1500,15 @@
       saveSettings();
       refreshCounts();
     }
-    generate(d.token, d.cfg || undefined);
-    // The fingerprint is advisory: the card still generates, the user is just told their
-    // settings differ from whoever made the seed.
-    if (d.fp && card.fp !== d.fp) {
+    const fromDefaults = !!d.fp && d.fp === defaultFingerprint();
+    generate(d.token, { cfg: d.cfg || undefined, defaults: fromDefaults });
+    card.builtFromDefaults = fromDefaults;
+    // Only warn when the card genuinely can't match: the seed was made under settings that
+    // are neither the viewer's nor the defaults.
+    if (d.fp && !fromDefaults && card.fp !== d.fp) {
       card.pastedFpMismatch = true;
-      updateBanner();
     }
+    updateBanner();
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);

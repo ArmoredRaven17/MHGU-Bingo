@@ -297,6 +297,8 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
 .swatch span{position:absolute;bottom:0;left:0;right:0;text-align:center;font-size:10px;line-height:1.5;color:#fff;background:rgba(0,0,0,.45)}
 .share-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
 .share-row code{flex:1;min-width:0;word-break:break-all}
+/* Small caption above each command row saying which bot the form suits. */
+.cmd-desc{font-size:11.5px;color:var(--text-dim);opacity:.7;margin:8px 0 3px;line-height:1.4}
 
 /* Other MHGU apps modal */
 .app-links{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:10px}

@@ -6,9 +6,11 @@
 <meta http-equiv="Cache-Control" content="no-cache">
 <title>MHGU Bingo</title>
 <meta name="description" content="Build a seeded, shareable bingo card of MHGU hunting goals.">
-<link rel="icon" href="assets/MonsterIcons/MHGU-Question_Mark_Icon.webp">
+<!-- Chameleos Gem. Sourced from the MHGU save editor, which maps that item to
+     MH4G-Ball_Icon_Purple — its copy carries a .png extension but the bytes are WebP. -->
+<link rel="icon" type="image/webp" href="assets/ItemIcons/MH4G-Ball_Icon_Purple.webp">
 <!-- Bump ?v= on any styles/app/data change so browsers fetch fresh copies (no hard-refresh needed) -->
-<link rel="stylesheet" href="styles.css?v=3">
+<link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 <div id="app">
@@ -23,7 +25,7 @@
       <button id="seedApply" class="btn tiny">Load</button>
     </div>
     <button id="newCardBtn" class="icon-btn" title="New Card" aria-label="New Card">&#8635;</button>
-    <button id="shareBtn" class="icon-btn" title="Share this card / Twitch" aria-label="Share this card">
+    <button id="twitchBtn" class="icon-btn" title="Twitch Bot" aria-label="Twitch Bot">
       <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg" fill="#9146FF" aria-hidden="true"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0Zm14.571 11.143-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
     </button>
     <button id="linksBtn" class="icon-btn" title="Other MHGU apps" aria-label="Other MHGU apps">&#128279;</button>
@@ -180,14 +182,21 @@
        Paste it back to rebuild the same card. It carries your grid size and pool weights, but
        <strong>not</strong> your filters or custom entries &mdash; so if a friend's settings differ,
        their card will differ too, and you'll see a warning saying so.</p>
-    <p>To share the <em>exact</em> card, including custom squares, use the Twitch button. That
-       uploads the card and gives you a short link that always rebuilds it perfectly.</p>
+    <p>To share the <em>exact</em> card, including custom squares, open the Twitch button and hit
+       <strong>Publish this card</strong>. That gives you a short link which always rebuilds it
+       perfectly, however different the other person's settings are.</p>
 
     <h3>Twitch</h3>
-    <p>The Twitch button also hands you two ready-made commands. <code>!bingo</code> rolls a
-       brand-new card for whoever runs it and prints the seed alongside the link, so anyone in
-       chat can rebuild that same board here. <code>!mycard</code> instead points at your own
-       card, for when you want chat following along with yours.</p>
+    <p>The Twitch button holds two ready-made bot commands. There's no account and nothing to log
+       into &mdash; they're just URLs for a chat bot to fetch.</p>
+    <ul>
+      <li><code>!bingo</code> rolls a brand-new card for whoever runs it and prints the seed
+          alongside the link. It works on its own, with nothing published first.</li>
+      <li><code>!currentcard</code> points at the stream's card, for when chat should follow
+          along with yours. Publish once and the link is permanent.</li>
+      <li><code>!setcurrentcard</code> rolls a new card straight into that link. Restrict it to
+          moderators &mdash; it carries a key.</li>
+    </ul>
     <p class="hint">Cards rolled by the bot use the default pools and filters, which is why the
        seed it prints reproduces exactly for anyone opening this app fresh.</p>
 
@@ -248,15 +257,46 @@
   </div>
 </div>
 
-<div id="shareModal" class="modal hidden">
+<div id="twitchModal" class="modal hidden">
   <div class="modal-card">
-    <h2>Share this card</h2>
-    <div id="shareBody"></div>
-    <div class="row end gap"><button id="shareClose" class="btn">Close</button></div>
+    <h2>Twitch Bot</h2>
+    <p class="hint">There's nothing to log into &mdash; these are just URLs. Nightbot takes the
+       whole <code>$(urlfetch &hellip;)</code> line as the command text; Moobot and most others
+       want the plain URL dropped into their own URL-fetch tag instead, not as the command
+       itself. Both forms are listed below.</p>
+
+    <hr class="modal-divider">
+
+    <h3>!bingo &mdash; a fresh card for whoever asks</h3>
+    <p class="hint">Rolls a brand-new card and replies with a link plus its seed, so chat can
+       either open that exact board or rebuild it here. Works on its own &mdash; nothing to
+       publish first.</p>
+    <div id="bingoCmdRow"></div>
+
+    <hr class="modal-divider">
+
+    <h3>!currentcard &mdash; the card the stream is playing</h3>
+    <p class="hint">Points chat at the stream's card so they can follow along. Publish once to
+       claim a permanent link &mdash; after that the URL never changes, however many new cards
+       you make.</p>
+    <div id="publishArea"></div>
+
+    <div id="setCardSection" class="hidden">
+      <hr class="modal-divider">
+      <h3>!setcurrentcard &mdash; roll a new one for the stream</h3>
+      <p class="hint"><strong>Restrict this one to moderators.</strong> It carries a key, and
+       anyone who can read the command can reroll your card. Running it rolls a fresh board
+       straight into the link above, so <code>!currentcard</code> keeps working untouched.</p>
+      <div id="setCardRow"></div>
+    </div>
+
+    <div class="row end gap" style="margin-top:14px">
+      <button id="twitchClose" class="btn">Close</button>
+    </div>
   </div>
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=3"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

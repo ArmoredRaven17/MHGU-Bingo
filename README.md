@@ -28,14 +28,17 @@ when captures are filtered out.
 ## Sharing a card
 
 - **Seed** — every card has a short seed like `MHGU-5F-M4W3O2C3-K7T2NX-9C4A`, shown in the title
-  bar with a Copy button. Paste one back to regenerate that card. Works across browsers as long
-  as your settings match.
+  bar with a Copy button. Paste one back to regenerate that card. A seed made on the default
+  pools and filters — which is every card the bot rolls — rebuilds exactly for anyone, even if
+  they've customised their own settings.
 - **Share code** — publishes the exact card and gives you a short link. This is the reliable
-  option, and the only one that carries custom entries.
-- **Twitch** — `!bingo` rolls a brand-new card for whoever runs it and prints both a link and
-  the seed, so anyone can open that board or rebuild it here. `!mycard` points at your own card
-  instead, for when chat should follow along with yours. Both are ready to paste from the
-  Twitch button in the app.
+  option whatever anyone's settings are, and the only one that carries custom entries.
+- **Twitch** — three commands, ready to paste from the Twitch button in the app, in both
+  Nightbot and plain-URL form:
+  - `!bingo` rolls a card for whoever runs it, printing a link and the seed.
+  - `!currentcard` links the stream's card so chat can follow along. Publish once and the URL
+    is permanent — new cards never break it.
+  - `!setcurrentcard` rolls a fresh card into that link. Mods only; it carries a key.
 
 ## Filters
 

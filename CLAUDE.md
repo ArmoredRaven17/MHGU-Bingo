@@ -123,7 +123,28 @@ Randomizer repo under `worker/`. No OAuth and no settings page.
 | `GET /bingo/:code` | the stored card as JSON, for this app to render `?c=CODE` |
 | `POST /bingo` | this app publishing its own card; mints a code + write key |
 | `POST /bingo/:code` | overwrite, requires `Authorization: Bearer <writeKey>` |
-| `GET /bingo-link?c=` | **`!mycard`** — plain-text link to one specific stored card |
+| `GET /bingo-link?c=` | **`!currentcard`** — plain-text link to the stream's slot |
+| `GET /bingo-set?c=&key=` | **`!setcurrentcard`** — rolls a fresh card *into* that slot (mods only) |
+
+### The published code is a permanent slot, not a per-card id
+
+A card code baked into a bot command goes stale the moment a new card is made, which is why
+`generate()` deliberately does **not** clear `mhgu-bingo-share`. The first publish claims a code
+plus a write key, and everything afterwards overwrites that same code: the app's publish button
+copies the on-screen card into it, and `!setcurrentcard` rolls a new one into it server-side.
+`!currentcard`'s URL is therefore fixed forever. Don't "tidy up" by clearing the code on a new
+card — that reintroduces the bug.
+
+The key rides in the `!setcurrentcard` URL, so that command must be mod-restricted in the bot.
+Bot-rolled cards store an empty `keyHash` and can never be claimed as a slot.
+
+### A default-settings seed always reproduces
+
+`applySeed` compares a pasted seed's fingerprint against `defaultFingerprint()`. On a match it
+rebuilds using `defaultFilters()` / `DEFAULT_RANGE` / `DEFAULT_POOL` instead of the viewer's own
+settings, so a seed printed by the bot reproduces exactly even for someone who has customised
+their pools. That's the reason the goal generators take the custom pool as a **parameter**
+rather than reading module state — don't collapse that back.
 
 ### `worker/src/bingo-gen.js` mirrors this app's generator
 
