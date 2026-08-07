@@ -99,6 +99,13 @@ Hue rotation guarantees separation but says nothing about luminance — on gold 
 square and an unmarked one land within 1.02:1. So `.cell.line` also carries an inset white ring,
 bold text, and a glow, none of which depend on colour.
 
+**Measuring cell colours:** `.cell` transitions `background` and `border-color` over 0.12s, and
+`getComputedStyle` reports the *animated* value. In a browser that isn't compositing frames
+(a headless or hidden pane), those transitions never advance, so colour reads come back frozen
+at the previous value while untransitioned properties like `opacity` update normally — which
+looks exactly like "the style isn't applying". Inject `*{transition:none !important}` before
+measuring, or read `el.style` for the intended value rather than the computed one.
+
 **Chromium gotcha:** changing `--win` on `:root` does *not* reliably repaint a `var()`-based
 `background` on cells that have already been painted. The cell reads the new value via
 `getComputedStyle` but keeps rendering the old colour, even after a forced reflow. `applyTheme`

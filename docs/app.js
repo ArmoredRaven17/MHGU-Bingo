@@ -21,6 +21,11 @@
   // Every cell carries a colour so no pool looks like the odd one out. Where a cell has a
   // sub-line the colour encodes it — weapon colours above, hunt rank here — and the pools
   // with no sub-line get one flat colour each.
+  // Border of a marked square. Muted rather than solid white so it reads as "done"
+  // without shouting over the --win fill a completed line gets. Kept in step with the
+  // .cell.marked rule in styles.css.
+  const MARKED_BORDER = "rgba(255,255,255,.38)";
+
   const RANK_COLORS = { Low: "#4aa3df", High: "#f5b400", G: "#e0523f", "": "#8a8f98" };
   const CAT_COLORS  = { objective: "#9b8cff", custom: "#5ec9a0", free: "#8a8f98" };
 
@@ -574,10 +579,14 @@
 
     // Single place that decides a square's border, in priority order: part of a completed
     // line beats merely marked, which beats the pool's own colour.
+    //
+    // Marking is deliberately quiet — see MARKED_BORDER. The fill and the dimmed icon
+    // already say "done", so a hard white outline on top only competes with the --win
+    // treatment that announces an actual bingo. The loud state is the win, not the mark.
     for (let i = 0; i < cells.length; i++) {
       cells[i].classList.toggle("line", lit.has(i));
       cells[i].style.borderColor = lit.has(i) ? "var(--win)"
-        : card.marked.has(i) ? "#fff"
+        : card.marked.has(i) ? MARKED_BORDER
         : (card.cells[i].tint || "");
     }
 

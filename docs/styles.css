@@ -221,7 +221,10 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
 }
 .cell:hover{background:#ffffff20}
 .cell:focus-visible{outline:2px solid var(--accent-hover);outline-offset:-4px}
-.cell.marked{border-color:#fff;background:color-mix(in srgb,var(--accent) 55%,transparent)}
+/* Muted border, not solid white — kept in step with MARKED_BORDER in app.js, which sets
+   it inline. The fill and dimmed icon carry the "done" signal; the border staying quiet
+   is what lets a completed line's --win treatment stand out against it. */
+.cell.marked{border-color:rgba(255,255,255,.38);background:color-mix(in srgb,var(--accent) 55%,transparent)}
 .cell.marked .cell-icon{opacity:.55}
 /* A completed line fills its squares with --win (a hue rotated 180° off the theme, see
    winColor) instead of only outlining them — a filled run of squares is unmistakable at a
