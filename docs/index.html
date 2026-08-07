@@ -312,9 +312,11 @@
 
     <hr class="modal-divider">
 
-    <h3>Put the card on screen up for chat</h3>
-    <p class="hint">Sends the board currently on screen to your channel, for when you've built
-       one with your own custom pool rather than rolling from chat.</p>
+    <h3>Use the card you're looking at</h3>
+    <p class="hint">Makes the board currently on screen your stream's card, so
+       <code>!currentcard</code> points at it. Use this when you've built one with your own
+       filters or custom squares &mdash; <code>!setcurrentcard</code> rolls from the defaults
+       and can't reproduce those. It's a snapshot, so send again after making changes.</p>
     <div id="publishArea"></div>
 
     <div class="row end gap" style="margin-top:14px">
@@ -324,6 +326,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=11"></script>
 </body>
 </html>

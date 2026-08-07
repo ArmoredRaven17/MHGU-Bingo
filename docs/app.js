@@ -1090,6 +1090,7 @@
   }
 
   const cleanChannel = (s) => String(s || "").trim().toLowerCase().replace(/^#/, "");
+  const channelUrl = (ch) => location.origin + location.pathname + "?channel=" + ch;
 
   // A logged-in channel wins over the typed one; the text box is the fallback for anyone
   // who'd rather not log in.
@@ -1114,13 +1115,23 @@
     for (const [host, path] of [["currentCardRow", "/bingo-link"], ["setCardRow", "/bingo-set"]]) {
       const el = $(host);
       el.textContent = "";
-      if (ch) addCommandPair(el, BOT_API_ORIGIN + path + "?channel=" + ch);
-      else {
+      if (!ch) {
         const p = document.createElement("p");
         p.className = "hint";
         p.textContent = "Log in above (or type your channel) and the command appears here, ready to paste.";
         el.appendChild(p);
+        continue;
       }
+      // The page chat lands on is just the channel name in a URL — it doesn't depend on
+      // anything having been published, so there's no reason to withhold it until then.
+      if (host === "currentCardRow") {
+        const label = document.createElement("p");
+        label.className = "cmd-desc";
+        label.textContent = "Where chat lands";
+        el.appendChild(label);
+        addCopyRow(el, "Link", channelUrl(ch));
+      }
+      addCommandPair(el, BOT_API_ORIGIN + path + "?channel=" + ch);
     }
     resetPublishArea(ch ? "Send this card to #" + ch : "Log in or enter your channel first", !ch);
   }
@@ -1166,11 +1177,11 @@
         method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
+      // No link repeated here — it's shown under !currentcard above and never changes.
       body.textContent = "";
-      addCopyRow(body, "Link", location.origin + location.pathname + "?channel=" + ch);
       const ok = document.createElement("p");
       ok.className = "hint";
-      ok.textContent = "Sent — !currentcard now points at this board.";
+      ok.textContent = "Sent — !currentcard now shows this board.";
       body.appendChild(ok);
       const again = document.createElement("button");
       again.className = "btn tiny";
