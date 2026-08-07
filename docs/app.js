@@ -488,6 +488,7 @@
   // ── Rendering ──────────────────────────────────────────────────────────────
   function renderCard() {
     const wrap = $("bingoCard");
+    hidePreview();
     wrap.textContent = "";
     if (!card) return;
     wrap.dataset.n = card.cfg.size;
@@ -938,7 +939,7 @@
   }
 
   function saveSettings() {
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, cfg, showReroll, filters: uiFilterState() })); } catch (e) {}
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, cfg, showReroll, previewMin, filters: uiFilterState() })); } catch (e) {}
   }
   function savePool() {
     try { localStorage.setItem(POOL_KEY, JSON.stringify({ v: 1, entries: customPool })); } catch (e) {}
@@ -956,6 +957,8 @@
     if (!d) return;
     showReroll = d.showReroll !== false;
     $("showReroll").checked = showReroll;
+    if (Number.isInteger(d.previewMin)) previewMin = d.previewMin;
+    $("previewMin").value = String(previewMin);
     if (d.cfg && typeof d.cfg === "object") {
       cfg.size = [3, 4, 5].includes(d.cfg.size) ? d.cfg.size : 5;
       cfg.free = d.cfg.free !== false;
@@ -1363,6 +1366,39 @@
     }
   }
 
+  // ── Enlarged tile preview ──────────────────────────────────────────────────
+  // Hovering a square shows a bigger copy of it. At 10x10 the text is around 5px, so the
+  // card becomes unreadable long before it becomes unplayable — this is what makes the
+  // larger grids usable rather than just possible.
+  // Smallest grid the preview kicks in at; 0 disables it. A display preference, so it
+  // stays off cfg for the same reason showReroll does.
+  let previewMin = 5;
+
+  function hidePreview() { $("tilePreview").classList.remove("on"); }
+
+  function showPreview(el) {
+    if (!previewMin || !card || card.cfg.size < previewMin) return hidePreview();
+
+    const r = el.getBoundingClientRect();
+    const p = $("tilePreview");
+    p.textContent = "";
+    const clone = el.cloneNode(true);
+    clone.removeAttribute("id");
+    clone.querySelectorAll(".cell-reroll").forEach(b => b.remove());
+    p.appendChild(clone);
+    p.classList.add("on");
+
+    // Prefer the right of the square, flip to the left when it would run off, and clamp
+    // vertically so a square near the top or bottom edge still shows a full panel.
+    const pw = p.offsetWidth, ph = p.offsetHeight, M = 10;
+    let x = r.right + M;
+    if (x + pw > innerWidth - M) x = r.left - pw - M;
+    if (x < M) x = M;
+    const y = Math.max(M, Math.min(r.top + r.height / 2 - ph / 2, innerHeight - ph - M));
+    p.style.left = Math.round(x) + "px";
+    p.style.top = Math.round(y) + "px";
+  }
+
   // ── Confirmation ───────────────────────────────────────────────────────────
   // Only asked when there is something to lose. An unmarked card costs nothing to
   // regenerate — and its seed is sitting in the title bar anyway — so confirming that
@@ -1411,6 +1447,8 @@
     cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
     showReroll = true;
     $("showReroll").checked = true;
+    previewMin = 5;
+    $("previewMin").value = "5";
     $("gridSize").value = String(cfg.size);
     for (const [id, on] of [["f_low", true], ["f_high", true], ["f_g", true], ["f_sp", true], ["f_event", true], ["f_arena", true],
                             ["f_keysOnly", false], ["f_large", true], ["f_hyper", true], ["f_capture", true],
@@ -1526,6 +1564,28 @@
     });
     $("confirmCancel").addEventListener("click", closeConfirm);
     $("confirmModal").addEventListener("click", (e) => { if (e.target.id === "confirmModal") closeConfirm(); });
+
+    // Delegated, so it survives renderCard() replacing every square.
+    const cardEl = $("bingoCard");
+    cardEl.addEventListener("mouseover", (e) => {
+      const cell = e.target.closest(".cell");
+      if (cell && cardEl.contains(cell)) showPreview(cell);
+    });
+    cardEl.addEventListener("mouseout", (e) => {
+      const to = e.relatedTarget;
+      if (!to || !cardEl.contains(to)) hidePreview();
+    });
+    // A card that moves or disappears under a stationary cursor would otherwise leave the
+    // panel stranded.
+    cardEl.addEventListener("mouseleave", hidePreview);
+    window.addEventListener("blur", hidePreview);
+    document.querySelector(".card-wrap").addEventListener("scroll", hidePreview);
+
+    $("previewMin").addEventListener("change", () => {
+      previewMin = parseInt($("previewMin").value, 10) || 0;
+      hidePreview();
+      saveSettings();
+    });
 
     $("showReroll").addEventListener("change", () => {
       showReroll = $("showReroll").checked;

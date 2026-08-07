@@ -287,6 +287,30 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
 .cell:hover .cell-reroll,.cell:focus-within .cell-reroll{opacity:1}
 .cell-reroll:hover{background:#000000aa}
 
+/* ── Enlarged tile preview ─────────────────────────────────────────────────── */
+/* A hover zoom of the square under the cursor. It reuses a clone of the cell itself, so
+   it stays in step with cell styling automatically — but everything the card sizes in cqi
+   has to be restated in px here, because the clone lives on <body>, outside the card's
+   container, where cqi and --n don't resolve. Sits below .modal's z-index, and is
+   pointer-events:none so it can never eat a click. */
+/* Opaque backdrop matching the card's own well: a marked square's fill is translucent, so
+   without this the grid shows straight through the zoom. */
+.tile-preview{position:fixed;z-index:9;pointer-events:none;display:none;
+  border-radius:10px;background:var(--well,#101216)}
+.tile-preview.on{display:block}
+.tile-preview .cell{
+  width:210px;height:210px;border-width:3px;border-radius:10px;
+  gap:6px;padding:12px;box-shadow:0 10px 30px rgba(0,0,0,.6);cursor:default;
+}
+.tile-preview .cell-text{font-size:17px;-webkit-line-clamp:5}
+.tile-preview .cell-sub{font-size:13px}
+.tile-preview .cell-reroll{display:none}
+.tile-preview .cell.marked::before,
+.tile-preview .cell.marked::after{height:3px;top:calc(50% - 1.5px)}
+
+/* No hover on touch, so the preview would only ever be a stuck panel. */
+@media (hover:none){ .tile-preview{display:none !important} }
+
 /* ── Modals ────────────────────────────────────────────────────────────────── */
 .modal{position:fixed;inset:0;background:#000000a8;display:flex;align-items:center;justify-content:center;z-index:10}
 .modal-card{

@@ -127,6 +127,20 @@ measuring, or read `el.style` for the intended value rather than the computed on
 therefore calls `renderCard()` — don't remove that, or the highlight silently keeps the previous
 theme's colour until the next card.
 
+## Hover preview
+
+Hovering a square shows an enlarged copy, which is what makes the bigger grids usable rather
+than merely possible — at 10×10 the text is around 5px. Card Setup carries the minimum grid
+size it applies from (default 5×5, or Off).
+
+It clones the cell so it tracks cell styling for free, but the clone lives on `<body>`, outside
+the card's container — so anything the card sizes in `cqi` or off `--n` has to be restated in
+px under `.tile-preview`. The panel also needs its own opaque backdrop (`--well`): a marked
+square's fill is translucent, so without one the grid shows straight through the zoom.
+
+`pointer-events:none` keeps it from ever eating a click, and it's suppressed under
+`@media (hover:none)` where it could only ever be a stuck panel.
+
 ## Cell text is capped, never shrunk
 
 `MAX_CELL_TEXT` (40) in `app.js` is the ceiling for custom entries. Grid sizes run 3-10, and

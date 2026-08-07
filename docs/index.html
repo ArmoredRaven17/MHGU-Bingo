@@ -10,7 +10,7 @@
      MH4G-Ball_Icon_Purple — its copy carries a .png extension but the bytes are WebP. -->
 <link rel="icon" type="image/webp" href="assets/ItemIcons/MH4G-Ball_Icon_Purple.webp">
 <!-- Bump ?v= on any styles/app/data change so browsers fetch fresh copies (no hard-refresh needed) -->
-<link rel="stylesheet" href="styles.css?v=10">
+<link rel="stylesheet" href="styles.css?v=12">
 </head>
 <body>
 <div id="app">
@@ -58,6 +58,20 @@
           <p class="hint">Only odd sizes can have a free space.</p>
           <label class="chk"><input type="checkbox" id="showReroll" checked>Reroll button on squares</label>
           <p class="hint">Turn off if you keep hitting it by accident while marking.</p>
+          <label class="field">Enlarge squares on hover
+            <select id="previewMin">
+              <option value="0">Off</option>
+              <option value="3">3 &times; 3 and up</option>
+              <option value="4">4 &times; 4 and up</option>
+              <option value="5" selected>5 &times; 5 and up</option>
+              <option value="6">6 &times; 6 and up</option>
+              <option value="7">7 &times; 7 and up</option>
+              <option value="8">8 &times; 8 and up</option>
+              <option value="9">9 &times; 9 and up</option>
+              <option value="10">10 &times; 10 and up</option>
+            </select>
+          </label>
+          <p class="hint">Only worth it once squares get small enough to be hard to read.</p>
         </div>
       </section>
 
@@ -266,6 +280,8 @@
   </div>
 </div>
 
+<div id="tilePreview" class="tile-preview"></div>
+
 <div id="confirmModal" class="modal hidden">
   <div class="modal-card" style="width:min(340px,90vw)">
     <h2 id="confirmTitle"></h2>
@@ -343,6 +359,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=16"></script>
+<script src="app.js?v=18"></script>
 </body>
 </html>
