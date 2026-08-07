@@ -29,8 +29,15 @@
   const markedBorder = (tint) =>
     tint ? css(lighten(hexRgb(tint), 0.55)) : "rgba(255,255,255,.55)";
 
-  const RANK_COLORS = { Low: "#4aa3df", High: "#f5b400", G: "#e0523f", "": "#8a8f98" };
-  const CAT_COLORS  = { objective: "#9b8cff", custom: "#5ec9a0", free: "#8a8f98" };
+  // Border colour is keyed on the filter category a square came from — the same axis as
+  // questCategory and the Quest Filters checkboxes — so the colour always matches the
+  // filter that put it on the card. Ranks run warm and escalating (yellow to red);
+  // the categories on their own filter axis get their own hues.
+  const CATEGORY_COLORS = {
+    Low: "#f2c53d", High: "#f5851f", G: "#e5383b",
+    SP: "#8b31d9", Event: "#2456c7", Arena: "#8a8f98", "": "#8a8f98",
+  };
+  const POOL_COLORS = { objective: "#9b8cff", custom: "#5ec9a0", free: "#8a8f98" };
 
   // Cell text is never shrunk to fit — it's capped instead, so every card renders at one
   // size. The longest generated goal ("Hunt Chaotic Gore Magala") is 24 characters; this
@@ -316,19 +323,19 @@
     const seen = new Map();   // monster -> Map(sub-line label -> base rank, for the colour)
     for (const q of pool) {
       if (!q.LgMonster) continue;
-      const label = rankLabel(q), base = baseRank(q);
+      const label = rankLabel(q), cat = questCategory(q);
       const list = (q.Monsters && q.Monsters.length) ? q.Monsters : (q.Monster ? [q.Monster] : []);
       for (const m of list) {
         if (!m) continue;
         if (!seen.has(m)) seen.set(m, new Map());
-        if (label) seen.get(m).set(label, base);
+        if (label) seen.get(m).set(label, cat);
       }
     }
     const out = [];
     for (const [name, labels] of seen) {
       // A monster only ever seen in Arena quests has no rank band; it still gets a square,
       // just without a sub-line.
-      const have = labels.size ? labels : new Map([["", ""]]);
+      const have = labels.size ? labels : new Map([["", "Arena"]]);
       for (const label of RANK_ORDER) {
         if (!have.has(label)) continue;
         out.push({
@@ -337,7 +344,7 @@
           text: "Hunt " + name,
           sub: label,
           icon: monsterIcon(name),
-          tint: RANK_COLORS[have.get(label)],
+          tint: CATEGORY_COLORS[have.get(label)],
         });
       }
     }
@@ -387,13 +394,13 @@
   ];
   function objectiveGoals(pool) {
     return OBJECTIVES.filter(o => o.ok(pool))
-      .map(o => ({ key: "o:" + o.id, cat: "objective", text: o.text, sub: "", icon: o.icon, tint: CAT_COLORS.objective }));
+      .map(o => ({ key: "o:" + o.id, cat: "objective", text: o.text, sub: "", icon: o.icon, tint: POOL_COLORS.objective }));
   }
 
   function customGoals(pool) {
     return pool.filter(c => c.checked && c.text.trim())
       .map(c => ({ key: "c:" + c.text, cat: "custom", text: c.text, sub: "", icon: "",
-                   tint: CAT_COLORS.custom, w: c.weight || 1 }));
+                   tint: POOL_COLORS.custom, w: c.weight || 1 }));
   }
 
   // Custom entries arrive as a parameter rather than being read from module state, so a
@@ -435,7 +442,7 @@
     const cells = [];
     let di = 0;
     for (let i = 0; i < n; i++) {
-      if (i === freeIdx) cells.push({ key: "free", cat: "free", text: "FREE", sub: "", icon: "", tint: CAT_COLORS.free });
+      if (i === freeIdx) cells.push({ key: "free", cat: "free", text: "FREE", sub: "", icon: "", tint: POOL_COLORS.free });
       else if (di < drawn.length) cells.push(drawn[di++]);
       else cells.push({ key: "empty:" + i, cat: "empty", text: "—", sub: "", icon: "", tint: "" });
     }

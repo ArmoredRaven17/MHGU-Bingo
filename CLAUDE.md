@@ -64,7 +64,7 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 
 | Pool | Cell | Colour |
 |---|---|---|
-| Monsters | `Hunt Rathalos` + a rank sub-line | by rank (Low/High/G) |
+| Monsters | `Hunt Rathalos` + a rank sub-line | by filter category (see below) |
 | Weapons | `Clear with Hunting Horn` + a style sub-line, plus one `Clear as a Prowler` per enabled bias | by weapon |
 | Objectives | `Capture a monster` | one flat colour |
 | Custom | the user's own text | one flat colour |
@@ -88,8 +88,21 @@ filtering under SP, so unchecking High Rank left squares reading "High Rank" on 
 filter looked broken — 120 Special Permits carry a High base rank. If another category is ever
 added on its own axis, prefix its label too.
 
-`baseRank()` is the third piece: the plain Low/High/G used for the cell colour, so an Event
-square is still tinted by its real difficulty.
+`baseRank()` is the third piece: the plain Low/High/G band, used to build the label.
+
+**Border colour keys off `questCategory`**, i.e. the same axis as the Quest Filters checkboxes,
+so a square's colour always matches the filter that put it on the card. `CATEGORY_COLORS` runs
+the ranks warm and escalating — Low `#f2c53d` yellow, High `#f5851f` orange, G `#e5383b` red —
+and gives the categories on their own filter axis their own hues: Special Permits `#8b31d9`
+purple, Events `#2456c7` blue, Arena `#8a8f98` grey. `POOL_COLORS` covers the pools that aren't
+rank-based at all: objectives `#9b8cff`, custom `#5ec9a0`, free space grey. Weapons keep
+`WEAPON_COLORS`, which is per weapon rather than per pool.
+
+Colouring by `baseRank` was the earlier behaviour and was wrong: a Special Permit borrowed
+G Rank's colour and an Event borrowed its underlying band's, so colour and filter disagreed.
+
+The tint is stored on each cell and travels in the shared-card payload, so it's part of what
+the Worker mirror has to reproduce — a colour change is a generator change, not a CSS one.
 
 Monster names come from the quests themselves, **not** `LgMonsters.json`. The two disagree in
 both directions: `White Fatalis` is listed but appears in zero quests, while `Silver Rathalos`,
