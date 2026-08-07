@@ -1,0 +1,1429 @@
+"use strict";
+(function () {
+  const DATA = window.MHGU_BINGO_DATA || { quests: [], monsters: [], dataVersion: "0" };
+  const $ = (id) => document.getElementById(id);
+
+  // ── Static config (ported from the MHGU Quest Randomizer) ──────────────────
+  const WEAPONS = ["Great Sword","Long Sword","Sword & Shield","Dual Blades",
+    "Hammer","Hunting Horn","Lance","Gunlance","Switch Axe","Charge Blade",
+    "Insect Glaive","Light Bowgun","Heavy Bowgun","Bow"];
+
+  const WEAPON_COLORS = {
+    "Great Sword":"#ff505b","Long Sword":"#9beaf1","Sword & Shield":"#dfd65f",
+    "Dual Blades":"#6ac083","Hammer":"#c3a3d2","Hunting Horn":"#f89a64",
+    "Lance":"#9fbcff","Gunlance":"#f4baf5","Switch Axe":"#aaaaaa",
+    "Charge Blade":"#fc5800","Insect Glaive":"#f5f5f5","Light Bowgun":"#acd56b",
+    "Heavy Bowgun":"#f8899c","Bow":"#55edc4","Prowler":"#c29930",
+  };
+
+  const STYLES = ["Guild","Striker","Adept","Aerial","Valor","Alchemy"];
+
+  // Every cell carries a colour so no pool looks like the odd one out. Where a cell has a
+  // sub-line the colour encodes it — weapon colours above, hunt rank here — and the pools
+  // with no sub-line get one flat colour each.
+  const RANK_COLORS = { Low: "#4aa3df", High: "#f5b400", G: "#e0523f", "": "#8a8f98" };
+  const CAT_COLORS  = { objective: "#9b8cff", custom: "#5ec9a0", free: "#8a8f98" };
+
+  // Cell text is never shrunk to fit — it's capped instead, so every card renders at one
+  // size. The longest generated goal ("Hunt Chaotic Gore Magala") is 24 characters; this
+  // leaves headroom for custom entries without overflowing a 5x5 square.
+  const MAX_CELL_TEXT = 40;
+
+  const BIASES = [
+    ["Charisma",  "FourthGen-Palico_Icon_Blue.webp"],
+    ["Fighting",  "Palico_Weapon_Cutting_Icon_Red.webp"],
+    ["Protection","FourthGen-Down_Arrow_Icon_Blue.webp"],
+    ["Assisting", "MH4G-Trap_Icon_Purple.webp"],
+    ["Healing",   "MH4G-Horn_Icon_Green.webp"],
+    ["Bombing",   "MH4G-Barrel_Icon_Brown.webp"],
+    ["Gathering", "MH4G-Boomerang_Icon_Blue.webp"],
+    ["Beast",     "FourthGen-Claw_Icon_Dark_Red.webp"],
+  ];
+
+  const SP_TIERS = {I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10,G1:11,G2:12,G3:13,G4:14,G5:15,EX:16};
+
+  // Level tables. NOTE the deliberate divergence from the Quest Randomizer documented in
+  // CLAUDE.md: 20 Arena quests carry Level 3 (the "Arena // Event:" set), which the
+  // randomizer's 0-44 rank range can't reach. Both tables below define that third level,
+  // so those quests are selectable here.
+  const LEVELS = {
+    "ALL": [
+      ["Village 1★",0],["Village 2★",1],["Village 3★",2],["Village 4★",3],
+      ["Village 5★",4],["Village 6★",5],["Village 7★",6],["Village 8★",7],
+      ["Village 9★",8],["Village 10★",9],["Village 10★ Adv.",10],
+      ["Hub 1★",11],["Hub 2★",12],["Hub 3★",13],["Hub 4★",14],
+      ["Hub 5★",15],["Hub 6★",16],["Hub 7★",17],["Hub 8★",18],
+      ["G1★",19],["G2★",20],["G3★",21],["G4★",22],["G4★ HR13+",23],
+      ["Deviant I",24],["Deviant II",25],["Deviant III",26],["Deviant IV",27],
+      ["Deviant V",28],["Deviant VI",29],["Deviant VII",30],["Deviant VIII",31],
+      ["Deviant IX",32],["Deviant X",33],["Deviant G1",34],["Deviant G2",35],
+      ["Deviant G3",36],["Deviant G4",37],["Deviant G5",38],["Deviant EX",39],
+      ["Event Low Rank",40],["Event High Rank",41],["Event G Rank",42],
+      ["Arena Normal",43],["Arena Challenge",44],["Arena Event",45],
+    ],
+    Village: [["1★",1],["2★",2],["3★",3],["4★",4],["5★",5],["6★",6],["7★",7],["8★",8],["9★",9],["10★",10],["10★ Advanced",11]],
+    Hub:     [["1★",1],["2★",2],["3★",3],["4★",4],["5★",5],["6★",6],["7★",7],["8★",8]],
+    Pub:     [["G1★",1],["G2★",2],["G3★",3],["G4★",4],["G4★ (HR13+)",5]],
+    Arena:   [["Normal",1],["Challenge",2],["Event",3]],
+    "Special Permits": [["I",1],["II",2],["III",3],["IV",4],["V",5],["VI",6],["VII",7],["VIII",8],["IX",9],["X",10],["G1",11],["G2",12],["G3",13],["G4",14],["G5",15],["EX",16]],
+    Events:  [["Low Rank",1],["High Rank",2],["G Rank",3]],
+  };
+
+  const COLORS = [
+    ["Teostra","#570B0B"],["Rathalos","#b51717"],
+    ["Tetsucabra","#c65900"],["Agnaktor","#fc933e"],
+    ["Tigrex","#C8A319"],["Rajang","#f1d364"],
+    ["Deviljho","#0B570F"],["Rathian","#3a9b3f"],
+    ["Astalos","#14503d"],["Zinogre","#2dae85"],
+    ["Zamtrios","#005984"],["Plesioth","#0080c1"],
+    ["Brachydios","#0B2757"],["Lagiacrus","#0b3f97"],
+    ["G. Magala","#1F0B57","Gore Magala"],["Nerscylla","#4e2fa2"],
+    ["Y. Garuga","#62008f","Yian Garuga"],["Chameleos","#8e50ab"],
+    ["Mizutsune","#D84696"],["Congalala","#ce79a8"],
+    ["Duramboros","#5a411f"],["Diablos","#997c54"],
+    ["Barroth","#B57C45"],["Bulldrome","#cfaa87"],
+    ["K. Daora","#505358","Kushala Daora"],["Valstrax","#aeb5c1"],
+    ["Forbidden","#1E2025","Question Mark"],
+  ];
+  const COLORS_HEX = Object.fromEntries(COLORS.map(([name, hex]) => [hex.toUpperCase(), name]));
+  const COLORS_ICON = Object.fromEntries(COLORS.filter(c => c[2]).map(([name,,icon]) => [name, icon]));
+
+  const BOT_API_ORIGIN = "https://mhgu-bot-api.raven-mhgu.workers.dev";
+
+  // ── Icon path helpers ──────────────────────────────────────────────────────
+  const FALLBACK_ICON = "assets/MonsterIcons/MHGU-Question_Mark_Icon.webp";
+  const monsterIcon = (name) => name
+    ? "assets/MonsterIcons/MHGU-" + name.replace(/ /g, "_") + "_Icon.webp"
+    : FALLBACK_ICON;
+  const weaponIcon = (w) => "assets/WeaponIcons/icon_" +
+    w.toLowerCase().replace(/ & /g, "_and_").replace(/ /g, "_") + "_tinted.png";
+  const prowlerIcon = (f) => "assets/ProwlerIcons/" + f;
+
+  // ── Quest name parsing ─────────────────────────────────────────────────────
+  function spTier(name) {
+    const c = name.indexOf(":"); if (c < 1) return 0;
+    const s = name.lastIndexOf(" ", c - 1); if (s < 0) return 0;
+    return SP_TIERS[name.slice(s + 1, c)] || 0;
+  }
+  // Maps each quest to its position in the unified ALL range (0-45).
+  function allRank(q) {
+    switch (q.Type) {
+      case "Village":         return q.Level - 1;
+      case "Hub":             return 10 + q.Level;
+      case "Pub":             return 18 + q.Level;
+      case "Special Permits": return 23 + spTier(q.Name || "");
+      case "Events":          return 39 + q.Level;
+      case "Arena":           return 42 + q.Level;
+      default:                return -1;
+    }
+  }
+  // Which rank band a quest belongs to. Village is Low throughout; Hub crosses into High
+  // at 4★; Pub is G Rank; Special Permits cross at the G tiers; Events carry their rank in
+  // Level. Arena quests don't sit on that ladder, so they contribute no rank.
+  function questRank(q) {
+    switch (q.Type) {
+      case "Village":         return "Low";
+      case "Hub":             return q.Level <= 3 ? "Low" : "High";
+      case "Pub":             return "G";
+      case "Special Permits": return spTier(q.Name || "") >= 11 ? "G" : "High";
+      case "Events":          return q.Level === 1 ? "Low" : q.Level === 2 ? "High" : "G";
+      default:                return "";
+    }
+  }
+
+  // ── Seeded RNG ─────────────────────────────────────────────────────────────
+  // Every draw on a card routes through here. Math.random() is used in exactly ONE
+  // place in this file (newToken, below) — if a grep turns up two, something has
+  // broken seed reproducibility.
+  function hashStr(s) {
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+    return h >>> 0;
+  }
+  function mulberry32(a) {
+    return function () {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function makeRng(seedStr) {
+    const next = mulberry32(hashStr(seedStr));
+    return { next, rand: (n) => Math.floor(next() * n) };
+  }
+  // Weighted sampling without replacement (Efraimidis-Spirakis): key = u^(1/w), highest
+  // key drawn first. Sorted ascending so the caller's pop() takes the highest. With all
+  // weights 1 this is a plain uniform shuffle.
+  function weightedShuffle(items, rng) {
+    return items
+      .map(it => ({ it, k: Math.pow(rng.next(), 1 / (it.w || 1)) }))
+      .sort((a, b) => a.k - b.k)
+      .map(e => e.it);
+  }
+
+  // ── Seed codec ─────────────────────────────────────────────────────────────
+  const B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford: no I, L, O, U
+  const b32 = (n, len) => { let s = ""; for (let i = 0; i < len; i++) { s = B32[n & 31] + s; n = n >>> 5; } return s; };
+  const CAT_LETTER = { monster:"M", weapon:"W", objective:"O", custom:"C" };
+  const LETTER_CAT = Object.fromEntries(Object.entries(CAT_LETTER).map(([k, v]) => [v, k]));
+  const SEED_RE = /^MHGU-([345])([FN])-((?:[MWOC][1-9])+)-([0-9A-Z]{6})-([0-9A-Z]{4})$/;
+
+  // The one and only unseeded call in this file.
+  const newToken = () => b32(Math.floor(Math.random() * 0x100000000), 6);
+
+  // cfg.free is the user's *preference*; an even grid has no centre square, so the
+  // effective value is always gated on oddness. Keeping the two apart means switching
+  // 5×5 → 4×4 → 5×5 doesn't silently forget that free space was wanted.
+  const effFree = (c) => !!c.free && c.size % 2 === 1;
+
+  function seedBody(c, token) {
+    const cats = CATS.filter(x => (c.cats[x.id] | 0) > 0)
+      .map(x => CAT_LETTER[x.id] + c.cats[x.id]).join("");
+    return "MHGU-" + c.size + (effFree(c) ? "F" : "N") + "-" + cats + "-" + token;
+  }
+
+  // Order-independent description of everything that changes which goals are eligible.
+  // Hashed into the seed's last segment so a pasted seed can warn that it was built under
+  // different settings. Advisory only — never a correctness gate.
+  function fingerprint(f, range) {
+    return [
+      "d" + DATA.dataVersion,
+      "T" + range.type + ":" + range.fromLv + "-" + range.toLv,
+      "L" + (f.allLevels ? [...f.allLevels].sort((a, b) => a - b).join(".") : "*"),
+      "M" + [...f.includedMonsters].sort().join("."),
+      "W" + f.weapons.slice().sort().join("."),
+      "S" + f.styles.slice().sort().join("."),
+      "F" + ["large","keysOnly","hyper","capture","egg","gathering","small","multi","oneFaint","onSite","pQuests"]
+        .map(k => f[k] ? 1 : 0).join(""),
+      "C" + customPool.filter(c => c.checked).map(c => c.text + "@" + c.weight).sort().join("."),
+    ].join("|");
+  }
+
+  // Accepts anything. A well-formed seed is decoded; anything else becomes a token so
+  // typing a word still produces a reproducible card (the box is rewritten with the
+  // canonical seed afterwards).
+  function decodeSeed(raw) {
+    const parts = String(raw).trim().split("-");
+    // Only the token and fingerprint are base32 — normalizing the whole string would
+    // corrupt the O in the Objective category letter.
+    if (parts.length === 5) {
+      const norm = (s) => s.toUpperCase().replace(/I/g, "1").replace(/L/g, "1").replace(/O/g, "0").replace(/U/g, "V");
+      const seed = [parts[0].toUpperCase(), parts[1].toUpperCase(), parts[2].toUpperCase(), norm(parts[3]), norm(parts[4])].join("-");
+      const m = seed.match(SEED_RE);
+      if (m) {
+        const cats = {};
+        for (const [, letter, w] of m[3].matchAll(/([MWOC])([1-9])/g)) cats[LETTER_CAT[letter]] = +w;
+        for (const c of CATS) if (!(c.id in cats)) cats[c.id] = 0;
+        return { cfg: { size: +m[1], free: m[2] === "F", cats }, token: m[4], fp: m[5] };
+      }
+    }
+    return { cfg: null, token: b32(hashStr(String(raw).trim().toLowerCase()), 6), fp: null };
+  }
+
+  // ── State ──────────────────────────────────────────────────────────────────
+  const DEFAULT_CFG = { size: 5, free: true, cats: { monster: 4, weapon: 3, objective: 2, custom: 3 } };
+  const DEFAULT_POOL = [
+    "Cart to a monster you already hunted",
+    "Moxie saved you, then you died anyway",
+    "Get carted by a small monster",
+    "Clear with under 5 minutes left",
+    "Sharpen mid-combo and get hit for it",
+    "Trip another hunter with your own attack",
+    "Finish a quest without eating first",
+    "Run out of Whetstones",
+    "Capture a monster by accident",
+    "Faint in the first two minutes",
+  ].map(text => ({ text, weight: 5, checked: true }));
+
+  let cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
+  let customPool = DEFAULT_POOL.map(c => Object.assign({}, c));
+  let card = null;             // {seed, token, fp, cfg, modified, freeIdx, cells, marked:Set}
+  let bags = {};               // leftover goals per category, for per-cell rerolls
+  let usedKeys = new Set();
+  let sharedView = false;      // viewing someone else's card via ?c=
+
+  // Every key this app owns is namespaced mhgu-bingo-*. Nothing is shared with the other
+  // MHGU apps, even though GitHub Pages puts them on one localStorage origin.
+  const SETTINGS_KEY = "mhgu-bingo-settings";
+  const POOL_KEY     = "mhgu-bingo-pool";
+  const CARD_KEY     = "mhgu-bingo-card";
+  const SHARE_KEY    = "mhgu-bingo-share";
+  const THEME_KEY    = "mhgu-bingo-theme";
+
+  // ── Quest pool ─────────────────────────────────────────────────────────────
+  // Ported from the Quest Randomizer's randomize() predicate. `range` narrows by quest
+  // type and level; `f.allLevels`, when non-null, is the set of ENABLED unified ranks
+  // (only ever supplied by the randomizer's saved filters).
+  function buildQuestPool(f, range) {
+    return DATA.quests.filter(q => {
+      const qType = q.Type || "";
+      const rank = allRank(q);
+      if (rank < 0) return false;
+      if (f.allLevels && !f.allLevels.has(rank)) return false;
+
+      if (range.type === "ALL") {
+        if (rank < range.fromLv || rank > range.toLv) return false;
+      } else {
+        if (qType.toLowerCase() !== range.type.toLowerCase()) return false;
+        if (q.Level < range.fromLv || q.Level > range.toLv) return false;
+      }
+
+      if (q.LgMonster && !f.large) return false;
+      if (f.keysOnly && !q.Key) return false;
+
+      const include = (q.LgMonster && !q.Capture)
+        || (q.Capture && f.capture)
+        || (q.Prowler && f.pQuests) || (q.Hyper && f.hyper)
+        || (q.Egg && f.egg) || (q.Gathering && f.gathering) || (q.SmMonsters && f.small);
+      if (!include) return false;
+
+      if (q.Prowler && !f.pQuests) return false;
+      if (q.Hyper && !f.hyper) return false;
+      const isMultiMonster = (q.Monsters && q.Monsters.length > 1) ||
+        (q.LgMonster && /\b[2-9]\b/.test(q.Main || ""));
+      if (isMultiMonster && !f.multi) return false;
+      if (q.OneFaint && !f.oneFaint) return false;
+      if (q.OnSite && !f.onSite) return false;
+
+      if (q.LgMonster && f.monsterFilterActive) {
+        const qmons = (q.Monsters && q.Monsters.length) ? q.Monsters : (q.Monster ? [q.Monster] : []);
+        if (qmons.length > 0 && !qmons.every(m => f.includedMonsters.has(m.toLowerCase()))) return false;
+      }
+      return true;
+    });
+  }
+
+  // ── Goal generators ────────────────────────────────────────────────────────
+  // Monster goals come from the monsters that actually appear on quests in the pool,
+  // NOT from LgMonsters.json. The two disagree in both directions: White Fatalis is
+  // listed but referenced by zero quests (an impossible goal), while Silver Rathalos,
+  // Gold Rathian and Old Fatalis appear on quests but aren't in the list.
+  // One goal per monster *per rank it's actually huntable at* in the current pool, so
+  // "Hunt Rathalos" at Low and at High are separate squares and both are achievable. The
+  // rank lives on the sub-line rather than in the text, which keeps every cell short.
+  const RANK_ORDER = ["Low", "High", "G", ""];
+  function monsterGoals(pool) {
+    const ranks = new Map();
+    for (const q of pool) {
+      if (!q.LgMonster) continue;
+      const rank = questRank(q);
+      const list = (q.Monsters && q.Monsters.length) ? q.Monsters : (q.Monster ? [q.Monster] : []);
+      for (const m of list) {
+        if (!m) continue;
+        if (!ranks.has(m)) ranks.set(m, new Set());
+        if (rank) ranks.get(m).add(rank);
+      }
+    }
+    const out = [];
+    for (const [name, set] of ranks) {
+      // A monster only ever seen in Arena quests has no rank band; it still gets a square,
+      // just without a sub-line.
+      const have = set.size ? set : new Set([""]);
+      for (const rank of RANK_ORDER) {
+        if (!have.has(rank)) continue;
+        out.push({
+          key: "m:" + name + ":" + rank,
+          cat: "monster",
+          text: "Hunt " + name,
+          sub: rank ? rank + " Rank" : "",
+          icon: monsterIcon(name),
+          tint: RANK_COLORS[rank],
+        });
+      }
+    }
+    return out;
+  }
+
+  function weaponGoals(pool, f) {
+    const out = [];
+    for (const w of f.weapons) {
+      if (!f.styles.length) {
+        out.push({ key: "w:" + w, cat: "weapon", text: "Clear with " + w, sub: "", icon: weaponIcon(w), tint: WEAPON_COLORS[w] });
+      } else {
+        for (const s of f.styles) {
+          out.push({ key: "w:" + w + "|" + s, cat: "weapon", text: "Clear with " + w, sub: s, icon: weaponIcon(w), tint: WEAPON_COLORS[w] });
+        }
+      }
+    }
+    // Prowler goals only make sense if Prowler quests are in the pool at all.
+    if (f.pQuests && pool.some(q => q.Prowler)) {
+      for (const [name, file] of BIASES) {
+        out.push({ key: "w:Prowler|" + name, cat: "weapon", text: "Clear as a Prowler", sub: name, icon: prowlerIcon(file), tint: WEAPON_COLORS.Prowler });
+      }
+    }
+    return out;
+  }
+
+  // Each objective is gated on the pool actually containing a quest that can satisfy it,
+  // so a card never asks for something impossible under the current filters.
+  const OBJECTIVES = [
+    { id:"capture",  text:"Capture a monster",             icon:"", ok:p => p.some(q => q.Capture) },
+    { id:"hyper",    text:"Clear a Hyper quest",           icon:"assets/MonsterIcons/MHGU-Hyper_Monster_Icon.png", ok:p => p.some(q => q.Hyper) },
+    { id:"egg",      text:"Clear an Egg Delivery",         icon:"assets/MonsterIcons/MHGU-Egg_Quest_Icon.webp", ok:p => p.some(q => q.Egg) },
+    { id:"gather",   text:"Clear a Gathering quest",       icon:"assets/MonsterIcons/MHGU-Wycademy_Quest_Icon.png", ok:p => p.some(q => q.Gathering) },
+    { id:"small",    text:"Clear a Small Monster quest",   icon:"", ok:p => p.some(q => q.SmMonsters) },
+    { id:"key",      text:"Clear a Key quest",             icon:"", ok:p => p.some(q => q.Key) },
+    { id:"sp",       text:"Clear a Special Permit",        icon:"", ok:p => p.some(q => q.Type === "Special Permits") },
+    { id:"arena",    text:"Clear an Arena quest",          icon:"", ok:p => p.some(q => q.Type === "Arena") },
+    { id:"event",    text:"Clear an Event quest",          icon:"", ok:p => p.some(q => q.Type === "Events") },
+    { id:"prowler",  text:"Clear a quest as a Prowler",    icon:"", ok:p => p.some(q => q.Prowler) },
+    { id:"onefaint", text:"Clear a One-Faint quest",       icon:"", ok:p => p.some(q => q.OneFaint) },
+    { id:"onsite",   text:"Clear an On-Site Items quest",  icon:"", ok:p => p.some(q => q.OnSite) },
+    { id:"multi",    text:"Clear a Multi-Monster quest",   icon:"", ok:p => p.some(q => q.Monsters && q.Monsters.length > 1) },
+    { id:"nofaint",  text:"Clear a quest without fainting",icon:"", ok:() => true },
+  ];
+  function objectiveGoals(pool) {
+    return OBJECTIVES.filter(o => o.ok(pool))
+      .map(o => ({ key: "o:" + o.id, cat: "objective", text: o.text, sub: "", icon: o.icon, tint: CAT_COLORS.objective }));
+  }
+
+  function customGoals() {
+    return customPool.filter(c => c.checked && c.text.trim())
+      .map(c => ({ key: "c:" + c.text, cat: "custom", text: c.text, sub: "", icon: "",
+                   tint: CAT_COLORS.custom, w: c.weight || 1 }));
+  }
+
+  const CATS = [
+    { id:"monster",   label:"Monsters",   items:(pool)    => monsterGoals(pool) },
+    { id:"weapon",    label:"Weapons",    items:(pool, f) => weaponGoals(pool, f) },
+    { id:"objective", label:"Objectives", items:(pool)    => objectiveGoals(pool) },
+    { id:"custom",    label:"Custom",     items:()        => customGoals() },
+  ];
+
+  // ── Card construction ──────────────────────────────────────────────────────
+  function buildCells(rng, c, pool, f) {
+    const n = c.size * c.size;
+    const freeIdx = effFree(c) ? (n - 1) / 2 : -1;
+    const need = n - (freeIdx >= 0 ? 1 : 0);
+    const active = CATS.filter(x => (c.cats[x.id] | 0) > 0);
+
+    const localBags = {};
+    for (const x of active) localBags[x.id] = weightedShuffle(x.items(pool, f), rng);
+
+    const used = new Set(), drawn = [];
+    // Each pass either consumes a goal or breaks, so this always terminates: the result
+    // is exactly min(need, total eligible) distinct goals — never a duplicate, never a
+    // rejection-retry loop that could spin.
+    while (drawn.length < need) {
+      const live = active.filter(x => localBags[x.id].length);
+      if (!live.length) break;
+      const total = live.reduce((s, x) => s + c.cats[x.id], 0);
+      let r = rng.next() * total, chosen = live[live.length - 1];
+      for (const x of live) { r -= c.cats[x.id]; if (r < 0) { chosen = x; break; } }
+      const goal = localBags[chosen.id].pop();
+      if (used.has(goal.key)) continue;
+      used.add(goal.key);
+      drawn.push(goal);
+    }
+
+    const cells = [];
+    let di = 0;
+    for (let i = 0; i < n; i++) {
+      if (i === freeIdx) cells.push({ key: "free", cat: "free", text: "FREE", sub: "", icon: "", tint: CAT_COLORS.free });
+      else if (di < drawn.length) cells.push(drawn[di++]);
+      else cells.push({ key: "empty:" + i, cat: "empty", text: "—", sub: "", icon: "", tint: "" });
+    }
+    return { cells, freeIdx, need, filled: drawn.length, bags: localBags, used };
+  }
+
+  function generate(token, cfgOverride) {
+    if (cfgOverride) cfg = cfgOverride;
+    const f = currentFilters();
+    const range = currentRange();
+    const pool = buildQuestPool(f, range);
+    const body = seedBody(cfg, token);
+    const fp = b32(hashStr(fingerprint(f, range)), 4);
+    const rng = makeRng(body);                       // NOT including the fingerprint
+    const built = buildCells(rng, cfg, pool, f);
+
+    bags = built.bags;
+    usedKeys = built.used;
+    card = {
+      seed: body + "-" + fp,
+      token, fp,
+      cfg: JSON.parse(JSON.stringify(cfg)),
+      modified: false,
+      freeIdx: built.freeIdx,
+      cells: built.cells,
+      marked: new Set(built.freeIdx >= 0 ? [built.freeIdx] : []),
+      created: Date.now(),
+      need: built.need,
+      short: built.need - built.filled,
+    };
+    sharedView = false;
+    try { localStorage.removeItem(SHARE_KEY); } catch (e) {}
+    renderCard();
+    saveCard();
+  }
+
+  // ── Rendering ──────────────────────────────────────────────────────────────
+  function renderCard() {
+    const wrap = $("bingoCard");
+    wrap.textContent = "";
+    if (!card) return;
+    wrap.dataset.n = card.cfg.size;
+    wrap.style.setProperty("--n", card.cfg.size);
+
+    card.cells.forEach((cell, i) => {
+      const el = document.createElement("button");
+      el.type = "button";
+      el.className = "cell";
+      if (cell.cat === "free") el.classList.add("free");
+      if (cell.cat === "empty") el.classList.add("empty");
+      if (card.marked.has(i)) el.classList.add("marked");
+      el.setAttribute("aria-pressed", card.marked.has(i) ? "true" : "false");
+      // Border is painted by highlightLines(), which runs at the end of this function.
+
+      if (cell.icon) {
+        const img = document.createElement("img");
+        img.className = "cell-icon";
+        img.alt = "";
+        img.src = cell.icon;
+        // Five monsters (Fatalis variants, Alatreon, Nakarkos) have no icon file. Null
+        // the handler first so a missing fallback can't loop.
+        img.onerror = () => { img.onerror = null; img.src = FALLBACK_ICON; };
+        el.appendChild(img);
+      }
+      if (cell.sub) {
+        const sub = document.createElement("div");
+        sub.className = "cell-sub";
+        sub.textContent = cell.sub;
+        el.appendChild(sub);
+      }
+      const txt = document.createElement("div");
+      txt.className = "cell-text";
+      txt.textContent = cell.text;      // user-authored text — never innerHTML
+      el.appendChild(txt);
+
+      if (cell.cat !== "free" && cell.cat !== "empty" && !sharedView) {
+        const rr = document.createElement("button");
+        rr.type = "button";
+        rr.className = "cell-reroll";
+        rr.textContent = "↻";
+        rr.title = "Reroll this square";
+        rr.setAttribute("aria-label", "Reroll this square");
+        rr.addEventListener("click", (e) => { e.stopPropagation(); rerollCell(i); });
+        el.appendChild(rr);
+      }
+
+      if (cell.cat !== "free" && cell.cat !== "empty") {
+        el.addEventListener("click", () => toggleMark(i));
+      }
+      wrap.appendChild(el);
+    });
+
+    highlightLines();
+    updateSeedBar();
+    updateBanner();
+  }
+
+  function toggleMark(i) {
+    if (card.marked.has(i)) card.marked.delete(i); else card.marked.add(i);
+    const el = $("bingoCard").children[i];
+    const on = card.marked.has(i);
+    el.classList.toggle("marked", on);
+    el.setAttribute("aria-pressed", on ? "true" : "false");
+    highlightLines();
+    saveCard();
+  }
+
+  // Row/column/diagonal index sets for a given size.
+  function linesFor(s) {
+    const out = [];
+    for (let r = 0; r < s; r++) out.push(Array.from({ length: s }, (_, c) => r * s + c));
+    for (let c = 0; c < s; c++) out.push(Array.from({ length: s }, (_, r) => r * s + c));
+    out.push(Array.from({ length: s }, (_, i) => i * s + i));
+    out.push(Array.from({ length: s }, (_, i) => i * s + (s - 1 - i)));
+    return out;
+  }
+
+  function highlightLines() {
+    if (!card) return;
+    const s = card.cfg.size;
+    const cells = $("bingoCard").children;
+    const done = linesFor(s).filter(ln => ln.every(i => card.marked.has(i)));
+    const lit = new Set();
+    for (const ln of done) for (const i of ln) lit.add(i);
+
+    // Single place that decides a square's border, in priority order: part of a completed
+    // line beats merely marked, which beats the pool's own colour.
+    for (let i = 0; i < cells.length; i++) {
+      cells[i].classList.toggle("line", lit.has(i));
+      cells[i].style.borderColor = lit.has(i) ? "var(--win)"
+        : card.marked.has(i) ? "#fff"
+        : (card.cells[i].tint || "");
+    }
+
+    const el = $("status");
+    const total = card.cells.filter(c => c.cat !== "empty").length;
+    el.classList.toggle("win", done.length > 0);
+    if (card.marked.size >= total && total > 0) el.textContent = "BLACKOUT!";
+    else if (done.length) el.textContent = "Bingo! " + done.length + (done.length === 1 ? " line" : " lines");
+    else el.textContent = card.marked.size + " of " + total + " marked";
+  }
+
+  function rerollCell(i) {
+    const cell = card.cells[i];
+    // Prefer the cell's own category; fall back to whatever bag still has goals.
+    let bag = bags[cell.cat];
+    if (!bag || !bag.length) {
+      const alt = CATS.filter(c => bags[c.id] && bags[c.id].length)
+        .sort((a, b) => (card.cfg.cats[b.id] | 0) - (card.cfg.cats[a.id] | 0))[0];
+      bag = alt ? bags[alt.id] : null;
+    }
+    if (!bag || !bag.length) { flash($("status"), "Nothing left to swap in"); return; }
+    let next = null;
+    while (bag.length) { const g = bag.pop(); if (!usedKeys.has(g.key)) { next = g; break; } }
+    if (!next) { flash($("status"), "Nothing left to swap in"); return; }
+    usedKeys.delete(cell.key);
+    usedKeys.add(next.key);
+    card.cells[i] = next;
+    card.marked.delete(i);
+    card.modified = true;
+    renderCard();
+    saveCard();
+  }
+
+  function flash(el, msg) {
+    const orig = el.textContent;
+    el.textContent = msg;
+    setTimeout(() => { if (el.textContent === msg) el.textContent = orig; }, 1500);
+  }
+
+  function updateSeedBar() {
+    if (!card) return;
+    $("seedInput").value = card.seed;
+    $("seedModified").classList.toggle("hidden", !card.modified);
+  }
+
+  function updateBanner() {
+    const b = $("banner");
+    b.textContent = "";
+    const msgs = [];
+    if (sharedView) msgs.push({ text: "You're viewing a shared card.", btn: ["Make this mine", forkShared] });
+    if (card && card.short > 0) {
+      // Counted in goal squares, excluding any free space — matching what the sidebar's
+      // "N squares to fill" reports, so the two never disagree.
+      const need = card.need || 0;
+      msgs.push({
+        text: "Only " + (need - card.short) + " of " + need + " squares could be filled with your current settings.",
+        btn: card.cfg.size > 3 ? ["Use " + (card.cfg.size - 1) + "×" + (card.cfg.size - 1), () => { cfg.size = card.cfg.size - 1; $("gridSize").value = cfg.size; syncFreeSpace(); saveSettings(); generate(newToken()); }] : null,
+      });
+    }
+    if (card && card.pastedFpMismatch) {
+      msgs.push({ text: "That seed was made with different settings, so your card may not match theirs.", btn: null });
+    }
+    b.classList.toggle("hidden", !msgs.length);
+    for (const m of msgs) {
+      const span = document.createElement("span");
+      span.textContent = m.text;
+      b.appendChild(span);
+      if (m.btn) {
+        const btn = document.createElement("button");
+        btn.className = "btn tiny";
+        btn.textContent = m.btn[0];
+        btn.addEventListener("click", m.btn[1]);
+        b.appendChild(btn);
+      }
+    }
+  }
+
+  // ── Filters ────────────────────────────────────────────────────────────────
+  function currentRange() {
+    const type = $("questType").value;
+    const from = parseInt($("fromLevel").value, 10);
+    const to = parseInt($("toLevel").value, 10);
+    return { type, fromLv: Math.min(from, to), toLv: Math.max(from, to) };
+  }
+
+  function currentFilters() {
+    const inc = new Set();
+    document.querySelectorAll("#monsterTree input.mon:checked").forEach(cb => inc.add(cb.dataset.name.toLowerCase()));
+    const weapons = [];
+    document.querySelectorAll("#weaponList input:checked").forEach(cb => weapons.push(cb.dataset.name));
+    const styles = [];
+    document.querySelectorAll("#styleList input:checked").forEach(cb => styles.push(cb.dataset.name));
+    return {
+      large: $("f_large").checked, keysOnly: $("f_keysOnly").checked,
+      hyper: $("f_hyper").checked, capture: $("f_capture").checked,
+      egg: $("f_egg").checked, gathering: $("f_gathering").checked,
+      small: $("f_small").checked, multi: $("f_multi").checked,
+      oneFaint: $("f_oneFaint").checked, onSite: $("f_onSite").checked,
+      pQuests: $("f_prowler").checked,
+      allLevels: null,
+      includedMonsters: inc,
+      monsterFilterActive: inc.size < DATA.monsters.length,
+      weapons, styles,
+    };
+  }
+
+  // ── Sidebar: pools ─────────────────────────────────────────────────────────
+  function buildCatRows() {
+    const wrap = $("catList");
+    wrap.textContent = "";
+    for (const c of CATS) {
+      const row = document.createElement("div");
+      row.className = "cat-row";
+
+      const label = document.createElement("label");
+      label.className = "chk";
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.checked = (cfg.cats[c.id] | 0) > 0;
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(c.label));
+
+      const num = document.createElement("input");
+      num.type = "number"; num.className = "num";
+      num.min = "1"; num.max = "9";
+      num.value = cfg.cats[c.id] || 1;
+      num.title = "Weight — how often this pool is drawn";
+      num.disabled = !cb.checked;
+
+      const count = document.createElement("span");
+      count.className = "cat-count";
+      count.id = "count_" + c.id;
+
+      cb.addEventListener("change", () => {
+        num.disabled = !cb.checked;
+        cfg.cats[c.id] = cb.checked ? (parseInt(num.value, 10) || 1) : 0;
+        saveSettings(); refreshCounts();
+      });
+      num.addEventListener("change", () => {
+        const v = Math.min(9, Math.max(1, parseInt(num.value, 10) || 1));
+        num.value = v;
+        if (cb.checked) cfg.cats[c.id] = v;
+        saveSettings(); refreshCounts();
+      });
+
+      row.appendChild(label); row.appendChild(num); row.appendChild(count);
+      wrap.appendChild(row);
+    }
+  }
+
+  // Recomputes how many distinct goals each pool can currently supply, and blocks grid
+  // sizes that can't be filled — catching a too-small pool before a card is generated
+  // rather than after.
+  function refreshCounts() {
+    const f = currentFilters();
+    const pool = buildQuestPool(f, currentRange());
+    let total = 0;
+    for (const c of CATS) {
+      const n = (cfg.cats[c.id] | 0) > 0 ? c.items(pool, f).length : 0;
+      total += n;
+      const el = $("count_" + c.id);
+      if (el) el.textContent = (cfg.cats[c.id] | 0) > 0 ? String(n) : "off";
+    }
+    const sizeSel = $("gridSize");
+    for (const opt of sizeSel.options) {
+      const s = +opt.value;
+      const need = s * s - (effFree({ free: cfg.free, size: s }) ? 1 : 0);
+      const short = total < need;
+      // Never disable the current selection: when nothing can be filled every size is
+      // short, and locking the whole control would leave no way back out of it.
+      opt.disabled = short && s !== cfg.size;
+      opt.title = short ? "Not enough goals — enable more pools or loosen your filters" : "";
+    }
+    const need = cfg.size * cfg.size - (effFree(cfg) ? 1 : 0);
+    $("poolStatus").textContent = total + " goals available · " + need + " squares to fill" +
+      (total < need ? " — not enough" : "");
+    $("generateBtn").disabled = total === 0;
+  }
+
+  // ── Sidebar: custom pool ───────────────────────────────────────────────────
+  function renderPool() {
+    const wrap = $("cpList");
+    wrap.textContent = "";
+    if (!customPool.length) {
+      const p = document.createElement("p");
+      p.className = "hint"; p.style.margin = "0";
+      p.textContent = "Nothing here yet.";
+      wrap.appendChild(p);
+      return;
+    }
+    customPool.forEach((entry, i) => {
+      const row = document.createElement("div");
+      row.className = "cp-tag";
+
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = entry.checked;
+      cb.title = "Include in the draw";
+
+      const txt = document.createElement("input");
+      txt.type = "text"; txt.className = "cp-edit-text";
+      txt.value = entry.text; txt.maxLength = MAX_CELL_TEXT;
+      if (!entry.checked) txt.classList.add("off");
+
+      const num = document.createElement("input");
+      num.type = "number"; num.className = "num";
+      num.min = "1"; num.max = "9"; num.value = entry.weight;
+      num.title = "Weight — how strongly this entry is favoured";
+
+      const del = document.createElement("button");
+      del.type = "button"; del.className = "cp-del";
+      del.textContent = "×";
+      del.title = "Remove"; del.setAttribute("aria-label", "Remove");
+
+      cb.addEventListener("change", () => {
+        customPool[i].checked = cb.checked;
+        txt.classList.toggle("off", !cb.checked);
+        savePool(); refreshCounts();
+      });
+      txt.addEventListener("change", () => {
+        const v = txt.value.trim();
+        if (v) { customPool[i].text = v; savePool(); refreshCounts(); }
+        else txt.value = customPool[i].text;
+      });
+      num.addEventListener("change", () => {
+        const v = Math.min(9, Math.max(1, parseInt(num.value, 10) || 1));
+        num.value = v; customPool[i].weight = v; savePool();
+      });
+      del.addEventListener("click", () => {
+        customPool.splice(i, 1); renderPool(); savePool(); refreshCounts();
+      });
+
+      row.appendChild(cb); row.appendChild(txt); row.appendChild(num); row.appendChild(del);
+      wrap.appendChild(row);
+    });
+  }
+
+  function addPoolEntry() {
+    const text = $("cpText").value.trim().slice(0, MAX_CELL_TEXT);
+    if (!text) return;
+    const weight = Math.min(9, Math.max(1, parseInt($("cpWeight").value, 10) || 5));
+    customPool.push({ text, weight, checked: true });
+    $("cpText").value = "";
+    renderPool(); savePool(); refreshCounts();
+  }
+
+  // ── Sidebar: monsters / weapons / styles ───────────────────────────────────
+  function buildMonsterTree() {
+    const wrap = $("monsterTree");
+    wrap.textContent = "";
+    const bySpecies = new Map();
+    for (const m of DATA.monsters) {
+      if (!bySpecies.has(m.Species)) bySpecies.set(m.Species, []);
+      bySpecies.get(m.Species).push(m.MonsterName);
+    }
+    for (const species of [...bySpecies.keys()].sort()) {
+      const sec = document.createElement("div");
+      sec.className = "species";
+
+      const head = document.createElement("div");
+      head.style.display = "flex";
+      head.style.alignItems = "center";
+
+      const twist = document.createElement("span");
+      twist.className = "twist";
+      twist.textContent = "▸";
+      twist.addEventListener("click", () => {
+        sec.classList.toggle("open");
+        twist.textContent = sec.classList.contains("open") ? "▾" : "▸";
+      });
+
+      const label = document.createElement("label");
+      label.className = "chk";
+      const sp = document.createElement("input");
+      sp.type = "checkbox"; sp.checked = true; sp.className = "sp";
+      sp.dataset.species = species;
+      label.appendChild(sp);
+      label.appendChild(document.createTextNode(species));
+
+      head.appendChild(twist); head.appendChild(label);
+      sec.appendChild(head);
+
+      const kids = document.createElement("div");
+      kids.className = "children";
+      for (const name of bySpecies.get(species).slice().sort()) {
+        const l = document.createElement("label");
+        l.className = "chk";
+        const cb = document.createElement("input");
+        cb.type = "checkbox"; cb.checked = true; cb.className = "mon";
+        cb.dataset.name = name; cb.dataset.species = species;
+        const img = document.createElement("img");
+        img.className = "wicon"; img.alt = ""; img.src = monsterIcon(name);
+        img.onerror = () => { img.onerror = null; img.src = FALLBACK_ICON; };
+        cb.addEventListener("change", () => { refreshSpeciesBoxes(); onFilterChange(); });
+        l.appendChild(cb); l.appendChild(img);
+        l.appendChild(document.createTextNode(name));
+        kids.appendChild(l);
+      }
+      sp.addEventListener("change", () => {
+        kids.querySelectorAll("input.mon").forEach(cb => { cb.checked = sp.checked; });
+        refreshSpeciesBoxes(); onFilterChange();
+      });
+      sec.appendChild(kids);
+      wrap.appendChild(sec);
+    }
+  }
+
+  function refreshSpeciesBoxes() {
+    document.querySelectorAll("#monsterTree input.sp").forEach(sp => {
+      const kids = [...document.querySelectorAll('#monsterTree input.mon[data-species="' + CSS.escape(sp.dataset.species) + '"]')];
+      const on = kids.filter(k => k.checked).length;
+      sp.checked = on === kids.length;
+      sp.indeterminate = on > 0 && on < kids.length;
+    });
+  }
+
+  function buildChecklist(hostId, names, iconFn) {
+    const wrap = $(hostId);
+    wrap.textContent = "";
+    for (const name of names) {
+      const l = document.createElement("label");
+      l.className = "chk";
+      const cb = document.createElement("input");
+      cb.type = "checkbox"; cb.checked = true; cb.dataset.name = name;
+      cb.addEventListener("change", onFilterChange);
+      l.appendChild(cb);
+      if (iconFn) {
+        const img = document.createElement("img");
+        img.className = "wicon"; img.alt = ""; img.src = iconFn(name);
+        img.onerror = () => { img.onerror = null; img.classList.add("hidden"); };
+        l.appendChild(img);
+      }
+      l.appendChild(document.createTextNode(name));
+      wrap.appendChild(l);
+    }
+  }
+
+  // ── Levels ─────────────────────────────────────────────────────────────────
+  function fillLevels() {
+    const type = $("questType").value;
+    const list = LEVELS[type] || LEVELS.ALL;
+    for (const id of ["fromLevel", "toLevel"]) {
+      const sel = $(id);
+      const prev = sel.value;
+      sel.textContent = "";
+      for (const [label, val] of list) {
+        const o = document.createElement("option");
+        o.value = String(val); o.textContent = label;
+        sel.appendChild(o);
+      }
+      const keep = [...sel.options].some(o => o.value === prev);
+      sel.value = keep ? prev : String(id === "fromLevel" ? list[0][1] : list[list.length - 1][1]);
+    }
+  }
+
+  // ── Persistence ────────────────────────────────────────────────────────────
+  function uiFilterState() {
+    const off = (sel) => {
+      const out = [];
+      document.querySelectorAll(sel).forEach(cb => { if (!cb.checked) out.push(cb.dataset.name); });
+      return out;
+    };
+    return {
+      questType: $("questType").value,
+      fromLevel: $("fromLevel").value,
+      toLevel: $("toLevel").value,
+      flags: ["f_large","f_keysOnly","f_hyper","f_capture","f_egg","f_gathering","f_small","f_multi","f_oneFaint","f_onSite","f_prowler"]
+        .reduce((a, id) => (a[id] = $(id).checked, a), {}),
+      offMonsters: off("#monsterTree input.mon"),
+      offWeapons: off("#weaponList input"),
+      offStyles: off("#styleList input"),
+    };
+  }
+
+  function saveSettings() {
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, cfg, filters: uiFilterState() })); } catch (e) {}
+  }
+  function savePool() {
+    try { localStorage.setItem(POOL_KEY, JSON.stringify({ v: 1, entries: customPool })); } catch (e) {}
+  }
+  function saveCard() {
+    if (!card || sharedView) return;
+    try {
+      localStorage.setItem(CARD_KEY, JSON.stringify(Object.assign({}, card, { v: 1, marked: [...card.marked] })));
+    } catch (e) {}
+  }
+
+  function loadSettings() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch (e) {}
+    if (!d) return;
+    if (d.cfg && typeof d.cfg === "object") {
+      cfg.size = [3, 4, 5].includes(d.cfg.size) ? d.cfg.size : 5;
+      cfg.free = d.cfg.free !== false;
+      for (const c of CATS) {
+        const v = d.cfg.cats ? (d.cfg.cats[c.id] | 0) : DEFAULT_CFG.cats[c.id];
+        cfg.cats[c.id] = Math.min(9, Math.max(0, v));
+      }
+    }
+    const f = d.filters;
+    if (!f) return;
+    if (f.questType) $("questType").value = f.questType;
+    fillLevels();
+    if (f.fromLevel) $("fromLevel").value = f.fromLevel;
+    if (f.toLevel) $("toLevel").value = f.toLevel;
+    if (f.flags) for (const id of Object.keys(f.flags)) if ($(id)) $(id).checked = !!f.flags[id];
+    const applyOff = (sel, names) => {
+      const offs = new Set(names || []);
+      document.querySelectorAll(sel).forEach(cb => { cb.checked = !offs.has(cb.dataset.name); });
+    };
+    applyOff("#monsterTree input.mon", f.offMonsters);
+    applyOff("#weaponList input", f.offWeapons);
+    applyOff("#styleList input", f.offStyles);
+    refreshSpeciesBoxes();
+  }
+
+  function loadPool() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(POOL_KEY) || "null"); } catch (e) {}
+    if (d && Array.isArray(d.entries)) customPool = d.entries.map(sanitizeEntry).filter(Boolean);
+  }
+
+  function sanitizeEntry(e) {
+    if (!e || typeof e.text !== "string") return null;
+    const text = e.text.trim().slice(0, MAX_CELL_TEXT);
+    if (!text) return null;
+    return { text, weight: Math.min(9, Math.max(1, parseInt(e.weight, 10) || 5)), checked: e.checked !== false };
+  }
+
+  function loadCard() {
+    let d = null;
+    try { d = JSON.parse(localStorage.getItem(CARD_KEY) || "null"); } catch (e) {}
+    if (!d || !Array.isArray(d.cells) || !d.cfg) return false;
+    card = d;
+    card.marked = new Set(Array.isArray(d.marked) ? d.marked : []);
+    card.short = d.short | 0;
+    card.need = d.need | 0;
+    // Rerolls consumed goals from bags that no longer exist after a reload; rebuilding
+    // them here would risk handing back a goal already on the card, so rerolling simply
+    // needs a fresh draw. Repopulate from the current pool, minus what's already used.
+    usedKeys = new Set(card.cells.map(c => c.key));
+    rebuildBags();
+    return true;
+  }
+
+  function rebuildBags() {
+    const f = currentFilters();
+    const pool = buildQuestPool(f, currentRange());
+    const rng = makeRng(card ? card.seed + ":bags" : "bags");
+    bags = {};
+    for (const c of CATS) {
+      if ((card ? card.cfg.cats[c.id] : cfg.cats[c.id]) | 0) {
+        bags[c.id] = weightedShuffle(c.items(pool, f).filter(g => !usedKeys.has(g.key)), rng);
+      }
+    }
+  }
+
+  // ── Sharing ────────────────────────────────────────────────────────────────
+  async function publishCard() {
+    const body = $("shareBody");
+    body.textContent = "";
+    const p = document.createElement("p");
+    p.textContent = "Uploading…";
+    body.appendChild(p);
+
+    let stored = null;
+    try { stored = JSON.parse(localStorage.getItem(SHARE_KEY) || "null"); } catch (e) {}
+
+    const payload = {
+      seed: card.seed,
+      size: card.cfg.size,
+      freeIdx: card.freeIdx,
+      cells: card.cells.map(c => ({ cat: c.cat, key: c.key, text: c.text, sub: c.sub || "", icon: c.icon || "", tint: c.tint || "" })),
+    };
+    try {
+      const headers = { "Content-Type": "application/json" };
+      if (stored && stored.code && stored.key) headers["Authorization"] = "Bearer " + stored.key;
+      const res = await fetch(BOT_API_ORIGIN + "/bingo" + (stored && stored.code ? "/" + stored.code : ""), {
+        method: "POST", headers, body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const out = await res.json();
+      try { localStorage.setItem(SHARE_KEY, JSON.stringify({ code: out.code, key: out.key || (stored && stored.key) })); } catch (e) {}
+      showShare(out.code);
+    } catch (e) {
+      body.textContent = "";
+      const err = document.createElement("p");
+      err.textContent = "Couldn't upload the card. Check your connection and try again — the seed in the title bar still works for anyone whose settings match yours.";
+      body.appendChild(err);
+    }
+  }
+
+  function showShare(code) {
+    const body = $("shareBody");
+    body.textContent = "";
+    const url = location.origin + location.pathname + "?c=" + code;
+    const p = document.createElement("p");
+    p.textContent = "Anyone with this link gets the exact card, custom squares and all — unlike the seed, which only rebuilds it for someone whose settings match yours.";
+    body.appendChild(p);
+    addCopyRow(body, "Link", url);
+
+    const h = document.createElement("h3");
+    h.textContent = "Twitch commands";
+    body.appendChild(h);
+
+    const p2 = document.createElement("p");
+    p2.className = "hint";
+    p2.textContent = "!bingo — rolls a brand-new card for whoever runs it, and prints its seed so chat can rebuild the same board:";
+    body.appendChild(p2);
+    addCopyRow(body, "!bingo command", "$(urlfetch " + BOT_API_ORIGIN + "/bingo)");
+
+    const p3 = document.createElement("p");
+    p3.className = "hint";
+    p3.textContent = "!mycard — always points at the card above, so chat can follow along with yours:";
+    body.appendChild(p3);
+    addCopyRow(body, "!mycard command", "$(urlfetch " + BOT_API_ORIGIN + "/bingo-link?c=" + code + ")");
+  }
+
+  function addCopyRow(host, label, value) {
+    const row = document.createElement("div");
+    row.className = "share-row";
+    const code = document.createElement("code");
+    code.textContent = value;
+    const btn = document.createElement("button");
+    btn.className = "btn tiny";
+    btn.textContent = "Copy";
+    btn.title = "Copy " + label;
+    btn.addEventListener("click", () => {
+      navigator.clipboard.writeText(value).then(() => {
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+      });
+    });
+    row.appendChild(code); row.appendChild(btn);
+    host.appendChild(row);
+  }
+
+  async function loadSharedCard(code) {
+    try {
+      const res = await fetch(BOT_API_ORIGIN + "/bingo/" + encodeURIComponent(code));
+      if (!res.ok) throw new Error("HTTP " + res.status);
+      const d = await res.json();
+      if (!d || !Array.isArray(d.cells)) throw new Error("bad payload");
+      sharedView = true;
+      card = {
+        seed: d.seed || "", token: "", fp: "",
+        cfg: { size: d.size, free: d.freeIdx >= 0, cats: {} },
+        modified: false, freeIdx: d.freeIdx,
+        cells: d.cells, marked: new Set(d.freeIdx >= 0 ? [d.freeIdx] : []),
+        created: Date.now(), short: 0,
+      };
+      bags = {}; usedKeys = new Set(d.cells.map(c => c.key));
+      renderCard();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function forkShared() {
+    sharedView = false;
+    card.modified = true;
+    renderCard();
+    saveCard();
+    history.replaceState(null, "", location.pathname);
+  }
+
+  // ── Theme ──────────────────────────────────────────────────────────────────
+  const hexRgb = (h) => { h = h.replace("#", ""); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16)); };
+  const clamp = (n) => Math.max(0, Math.min(255, Math.round(n)));
+  const clamp01 = (n) => Math.max(0, Math.min(1, n));
+  const rgbToHsl = ([r, g, b]) => {
+    r /= 255; g /= 255; b /= 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+    const l = (max + min) / 2;
+    if (d === 0) return [0, 0, l];
+    const s = d / (1 - Math.abs(2 * l - 1));
+    const h = max === r ? ((g - b) / d + (g < b ? 6 : 0)) / 6
+            : max === g ? ((b - r) / d + 2) / 6
+            :             ((r - g) / d + 4) / 6;
+    return [h, s, l];
+  };
+  const hslToRgb = ([h, s, l]) => {
+    const c = (1 - Math.abs(2 * l - 1)) * s, x = c * (1 - Math.abs((h * 6) % 2 - 1)), m = l - c / 2;
+    const hi = Math.floor(h * 6) % 6;
+    const [r, g, b] = hi === 0 ? [c, x, 0] : hi === 1 ? [x, c, 0] : hi === 2 ? [0, c, x]
+                    : hi === 3 ? [0, x, c] : hi === 4 ? [x, 0, c] : [c, 0, x];
+    return [r + m, g + m, b + m].map(v => clamp(v * 255));
+  };
+  // Only lightness is shifted, so every derived shade keeps the chosen colour's hue.
+  const darken  = (rgb, f) => { const [h, s, l] = rgbToHsl(rgb); return hslToRgb([h, s, clamp01(l * f)]); };
+  const lighten = (rgb, b) => { const [h, s, l] = rgbToHsl(rgb); return hslToRgb([h, s, clamp01(l + (1 - l) * b)]); };
+  const css = (rgb) => "rgb(" + rgb[0] + "," + rgb[1] + "," + rgb[2] + ")";
+
+  // WCAG relative luminance / contrast, used to pick a bingo highlight that stays legible
+  // on every theme rather than only on the dark ones.
+  const relLum = ([r, g, b]) => {
+    const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b);
+  };
+  const contrast = (a, b) => {
+    const x = relLum(a), y = relLum(b);
+    return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05);
+  };
+  const mix = (fg, a, bg) => fg.map((v, i) => v * a + bg[i] * (1 - a));
+
+  // The bingo highlight.
+  //
+  // Every other colour on the page is derived from the theme by shifting lightness only,
+  // so a brighter shade of the same hue reads as "slightly lighter" rather than "you won".
+  // Two things fix that. The hue is rotated a full 180°, putting it as far from the
+  // theme's family as the colour wheel allows — including on the near-greyscale themes,
+  // which have almost no chroma of their own to compete with.
+  //
+  // A completed line FILLS its squares with this colour rather than just outlining them,
+  // which is what makes the lightness solvable. Trying to tune a 2px border to contrast
+  // with both the gap behind the grid and the marked-square fill pulls in two directions
+  // at once, and on the amber themes it has no good answer at all — an earlier attempt
+  // bottomed out at 1.24:1. Filling the square leaves exactly one contrast requirement:
+  // the cell's white text has to stay readable on it.
+  //
+  // HSL lightness is not perceived brightness (green carries 72% of relative luminance,
+  // blue only 7%), so a fixed lightness would be readable at one hue and not another.
+  // Instead, walk down from a vivid lightness until white text clears WCAG AA. Every hue
+  // reaches that eventually, so this always terminates with the lightest colour that is
+  // still legible.
+  const WHITE = [255, 255, 255];
+  function winColor(c) {
+    const hue = (rgbToHsl(c)[0] + 0.5) % 1;
+    for (let l = 0.60; l >= 0.20; l -= 0.01) {
+      const cand = hslToRgb([hue, 0.95, l]);
+      if (contrast(cand, WHITE) >= 4.5) return cand;
+    }
+    return hslToRgb([hue, 0.95, 0.20]);
+  }
+
+  // Every theme in COLORS is a dark one, so there's no light branch to switch on.
+  function applyTheme(hex) {
+    const c = hexRgb(hex), r = document.documentElement.style;
+    const well = darken(c, .40), accent = darken(c, .70);
+    r.setProperty("--bg",           css(darken(c, .70)));
+    r.setProperty("--bg1",          css(darken(c, .80)));
+    r.setProperty("--bg2",          css(darken(c, .95)));
+    // The card well sits behind the squares, so it has to read as darker than they do —
+    // otherwise the grid dissolves into the background.
+    r.setProperty("--well",         css(well));
+    r.setProperty("--accent",       css(accent));
+    r.setProperty("--accent-hover", css(lighten(c, .40)));
+    r.setProperty("--win",          css(winColor(c)));
+    r.setProperty("--text",     "#ffffff");
+    r.setProperty("--text-dim", "#fffffff5");
+    r.setProperty("--line",     "rgba(11,8,8,0.12)");
+    r.setProperty("--card",     "rgba(255,255,255,0.05)");
+    try { localStorage.setItem(THEME_KEY, hex); } catch (e) {}
+    document.querySelectorAll(".swatch").forEach(s => s.classList.toggle("sel", s.dataset.hex === hex));
+    const icon = document.querySelector(".title-icon");
+    if (icon) {
+      const name = COLORS_HEX[hex.toUpperCase()];
+      icon.src = name ? monsterIcon(COLORS_ICON[name] || name) : FALLBACK_ICON;
+    }
+    // Repaint the card on a theme change. Chromium does not reliably re-resolve a
+    // var()-based background on cells that have already been painted when the custom
+    // property changes on :root — the cell reads the new --win, but keeps rendering the
+    // old colour indefinitely, even after a forced reflow. Rebuilding the squares is
+    // cheap (25 nodes) and is what actually repaints a completed line's fill.
+    if (card) renderCard();
+  }
+
+  function buildSwatches() {
+    const wrap = $("swatches");
+    wrap.textContent = "";
+    for (const [name, hex] of COLORS) {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "swatch";
+      b.dataset.hex = hex; b.style.background = hex; b.title = name;
+      const img = document.createElement("img");
+      img.className = "swatch-icon"; img.alt = "";
+      img.src = monsterIcon(COLORS_ICON[name] || name);
+      img.onerror = () => { img.onerror = null; img.src = FALLBACK_ICON; };
+      const span = document.createElement("span");
+      span.textContent = name;
+      b.appendChild(img); b.appendChild(span);
+      b.addEventListener("click", () => applyTheme(hex));
+      wrap.appendChild(b);
+    }
+  }
+
+  // ── Wiring ─────────────────────────────────────────────────────────────────
+  function wireModal(modalId, openId, closeId) {
+    if (openId) $(openId).addEventListener("click", () => $(modalId).classList.remove("hidden"));
+    if (closeId) $(closeId).addEventListener("click", () => $(modalId).classList.add("hidden"));
+    $(modalId).addEventListener("click", (e) => { if (e.target.id === modalId) $(modalId).classList.add("hidden"); });
+  }
+
+  // Reflects the preference into the checkbox without writing back to it, so an even
+  // grid greys the box out rather than clearing what the user asked for.
+  function syncFreeSpace() {
+    const odd = cfg.size % 2 === 1;
+    $("freeSpace").disabled = !odd;
+    $("freeSpace").checked = odd && !!cfg.free;
+  }
+
+  function onFilterChange() {
+    saveSettings();
+    refreshCounts();
+  }
+
+  function doReset() {
+    cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
+    $("gridSize").value = String(cfg.size);
+    $("questType").value = "ALL";
+    fillLevels();
+    for (const [id, on] of [["f_keysOnly", false], ["f_large", true], ["f_hyper", true], ["f_capture", true],
+                            ["f_egg", true], ["f_gathering", true], ["f_small", true], ["f_multi", true],
+                            ["f_oneFaint", true], ["f_onSite", true], ["f_prowler", false]]) $(id).checked = on;
+    document.querySelectorAll("#monsterTree input, #weaponList input, #styleList input").forEach(cb => { cb.checked = true; cb.indeterminate = false; });
+    buildCatRows();
+    syncFreeSpace();
+    saveSettings();
+    refreshCounts();
+  }
+
+  function boot() {
+    // Panels behave as an accordion, like the Quest Randomizer's sidebar.
+    document.querySelectorAll(".panel-head").forEach(h => {
+      h.addEventListener("click", () => {
+        const panel = h.parentElement;
+        const open = panel.dataset.open === "true";
+        document.querySelectorAll(".panel").forEach(p => { p.dataset.open = "false"; });
+        panel.dataset.open = open ? "false" : "true";
+      });
+    });
+
+    buildCatRows();
+    buildMonsterTree();
+    buildChecklist("weaponList", WEAPONS, weaponIcon);
+    buildChecklist("styleList", STYLES, null);
+    fillLevels();
+    buildSwatches();
+    loadPool();
+    renderPool();
+    loadSettings();
+    $("gridSize").value = String(cfg.size);
+    syncFreeSpace();
+
+    let theme = "#1E2025";
+    try { theme = localStorage.getItem(THEME_KEY) || theme; } catch (e) {}
+    applyTheme(theme);
+
+    // Config
+    $("gridSize").addEventListener("change", () => {
+      cfg.size = parseInt($("gridSize").value, 10) || 5;
+      syncFreeSpace(); saveSettings(); refreshCounts();
+    });
+    $("freeSpace").addEventListener("change", () => {
+      cfg.free = $("freeSpace").checked; saveSettings(); refreshCounts();
+    });
+    $("questType").addEventListener("change", () => { fillLevels(); onFilterChange(); });
+    $("fromLevel").addEventListener("change", onFilterChange);
+    $("toLevel").addEventListener("change", onFilterChange);
+    document.querySelectorAll("#f_large,#f_keysOnly,#f_hyper,#f_capture,#f_egg,#f_gathering,#f_small,#f_multi,#f_oneFaint,#f_onSite,#f_prowler")
+      .forEach(cb => cb.addEventListener("change", onFilterChange));
+
+    $("monAll").addEventListener("click", () => { document.querySelectorAll("#monsterTree input").forEach(cb => { cb.checked = true; cb.indeterminate = false; }); onFilterChange(); });
+    $("monNone").addEventListener("click", () => { document.querySelectorAll("#monsterTree input").forEach(cb => { cb.checked = false; cb.indeterminate = false; }); onFilterChange(); });
+    $("wepAll").addEventListener("click", () => { document.querySelectorAll("#weaponList input").forEach(cb => { cb.checked = true; }); onFilterChange(); });
+    $("wepNone").addEventListener("click", () => { document.querySelectorAll("#weaponList input").forEach(cb => { cb.checked = false; }); onFilterChange(); });
+
+    // Custom pool
+    $("cpAdd").addEventListener("click", addPoolEntry);
+    $("cpText").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); addPoolEntry(); } });
+    $("cpExport").addEventListener("click", () => {
+      $("poolModalTitle").textContent = "Export Custom Pool";
+      $("poolModalHint").textContent = "Copy this and keep it somewhere, or send it to someone else.";
+      $("poolModalText").value = JSON.stringify(customPool, null, 2);
+      $("poolModalAction").textContent = "Copy";
+      $("poolModal").classList.remove("hidden");
+    });
+    $("cpImport").addEventListener("click", () => {
+      $("poolModalTitle").textContent = "Import Custom Pool";
+      $("poolModalHint").textContent = "Paste an exported pool here. This replaces your current entries.";
+      $("poolModalText").value = "";
+      $("poolModalAction").textContent = "Import";
+      $("poolModal").classList.remove("hidden");
+    });
+    $("poolModalAction").addEventListener("click", () => {
+      const btn = $("poolModalAction");
+      if (btn.textContent === "Copy") {
+        navigator.clipboard.writeText($("poolModalText").value).then(() => {
+          btn.textContent = "Copied!";
+          setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+        });
+        return;
+      }
+      let parsed = null;
+      try { parsed = JSON.parse($("poolModalText").value); } catch (e) {}
+      const entries = Array.isArray(parsed) ? parsed.map(sanitizeEntry).filter(Boolean) : null;
+      if (!entries || !entries.length) {
+        btn.textContent = "Not valid";
+        setTimeout(() => { btn.textContent = "Import"; }, 2000);
+        return;
+      }
+      customPool = entries;
+      renderPool(); savePool(); refreshCounts();
+      $("poolModal").classList.add("hidden");
+    });
+
+    // Cards
+    $("generateBtn").addEventListener("click", () => generate(newToken()));
+    $("newCardBtn").addEventListener("click", () => generate(newToken()));
+    $("resetBtn").addEventListener("click", doReset);
+    $("seedApply").addEventListener("click", applySeed);
+    $("seedInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); applySeed(); } });
+
+    $("seedCopy").addEventListener("click", () => {
+      const btn = $("seedCopy");
+      navigator.clipboard.writeText($("seedInput").value).then(() => {
+        btn.textContent = "Copied!";
+        setTimeout(() => { btn.textContent = "Copy"; }, 1500);
+      });
+    });
+
+    $("shareBtn").addEventListener("click", () => {
+      if (!card) return;
+      $("shareModal").classList.remove("hidden");
+      publishCard();
+    });
+
+    wireModal("helpModal", "helpBtn", "helpClose");
+    wireModal("themeModal", "themeBtn", "themeClose");
+    wireModal("linksModal", "linksBtn", "linksClose");
+    wireModal("poolModal", null, "poolModalClose");
+    wireModal("shareModal", null, "shareClose");
+
+    // A shared link wins over whatever card is stored locally.
+    const code = new URLSearchParams(location.search).get("c");
+    refreshCounts();
+    if (code) {
+      loadSharedCard(code).then(ok => {
+        if (!ok) { flash($("status"), "That shared card couldn't be found."); startLocal(); }
+      });
+    } else {
+      startLocal();
+    }
+  }
+
+  function startLocal() {
+    if (loadCard()) renderCard();
+    else generate(newToken());
+  }
+
+  function applySeed() {
+    const raw = $("seedInput").value;
+    if (!raw.trim()) return;
+    const d = decodeSeed(raw);
+    if (d.cfg) {
+      cfg = d.cfg;
+      $("gridSize").value = String(cfg.size);
+      syncFreeSpace();
+      buildCatRows();
+      saveSettings();
+      refreshCounts();
+    }
+    generate(d.token, d.cfg || undefined);
+    // The fingerprint is advisory: the card still generates, the user is just told their
+    // settings differ from whoever made the seed.
+    if (d.fp && card.fp !== d.fp) {
+      card.pastedFpMismatch = true;
+      updateBanner();
+    }
+  }
+
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+  else boot();
+})();

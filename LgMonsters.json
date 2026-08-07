@@ -1,0 +1,366 @@
+[
+  {
+    "MonsterName": "Agnaktor",
+    "Species": "Leviathan"
+  },
+  {
+    "MonsterName": "Akantor",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Arzuros",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Redhelm Arzuros",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Astalos",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Boltreaver Astalos",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Ahtal-Ka",
+    "Species": "Temnoceran"
+  },
+  {
+    "MonsterName": "Barioth",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Barroth",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Basarios",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Blangonga",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Brachydios",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Raging Brachydios",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Bulldrome",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Cephadrome",
+    "Species": "Piscine Wyvern"
+  },
+  {
+    "MonsterName": "Congalala",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Daimyo Hermitaur",
+    "Species": "Carapaceon"
+  },
+  {
+    "MonsterName": "Stonefist Hermitaur",
+    "Species": "Carapaceon"
+  },
+  {
+    "MonsterName": "Deviljho",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Savage Deviljho",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Diablos",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Bloodbath Diablos",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Duramboros",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Gammoth",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Elderfrost Gammoth",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Gendrome",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Giadrome",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Glavenus",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Hellblade Glavenus",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Gore Magala",
+    "Species": "???"
+  },
+  {
+    "MonsterName": "Chaotic Gore Magala",
+    "Species": "???"
+  },
+  {
+    "MonsterName": "Gravios",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Great Maccao",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Gypceros",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Iodrome",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Kecha Wacha",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Khezu",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Lagiacrus",
+    "Species": "Leviathan"
+  },
+  {
+    "MonsterName": "Lagombi",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Snowbaron Lagombi",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Lavasioth",
+    "Species": "Piscine Wyvern"
+  },
+  {
+    "MonsterName": "Malfestio",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Nightcloak Malfestio",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Mizutsune",
+    "Species": "Leviathan"
+  },
+  {
+    "MonsterName": "Soulseer Mizutsune",
+    "Species": "Leviathan"
+  },
+  {
+    "MonsterName": "Najarala",
+    "Species": "Snake Wyvern"
+  },
+  {
+    "MonsterName": "Nargacuga",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Silverwind Nargacuga",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Nerscylla",
+    "Species": "Temnoceran"
+  },
+  {
+    "MonsterName": "Nibelsnarf",
+    "Species": "Piscine Wyvern"
+  },
+  {
+    "MonsterName": "Plesioth",
+    "Species": "Piscine Wyvern"
+  },
+  {
+    "MonsterName": "Rajang",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Furious Rajang",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Rathalos",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Dreadking Rathalos",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Rathian",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Dreadqueen Rathian",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Royal Ludroth",
+    "Species": "Leviathan"
+  },
+  {
+    "MonsterName": "Seltas",
+    "Species": "Neopteron"
+  },
+  {
+    "MonsterName": "Seltas Queen",
+    "Species": "Neopteron"
+  },
+  {
+    "MonsterName": "Seregios",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Shogun Ceanataur",
+    "Species": "Carapaceon"
+  },
+  {
+    "MonsterName": "Rustrazor Ceanataur",
+    "Species": "Carapaceon"
+  },
+  {
+    "MonsterName": "Tetsucabra",
+    "Species": "Amphibian"
+  },
+  {
+    "MonsterName": "Drilltusk Tetsucabra",
+    "Species": "Amphibian"
+  },
+  {
+    "MonsterName": "Tigrex",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Grimclaw Tigrex",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Ukanlos",
+    "Species": "Flying Wyvern"
+  },
+  {
+    "MonsterName": "Uragaan",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Crystalbeard Uragaan",
+    "Species": "Brute Wyvern"
+  },
+  {
+    "MonsterName": "Velocidrome",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Volvidon",
+    "Species": "Fanged Beast"
+  },
+  {
+    "MonsterName": "Yian Garuga",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Deadeye Yian Garuga",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Yian Kut-Ku",
+    "Species": "Bird Wyvern"
+  },
+  {
+    "MonsterName": "Zamtrios",
+    "Species": "Amphibian"
+  },
+  {
+    "MonsterName": "Zinogre",
+    "Species": "Fanged Wyvern"
+  },
+  {
+    "MonsterName": "Thunderlord Zinogre",
+    "Species": "Fanged Wyvern"
+  },
+  {
+    "MonsterName": "Alatreon",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Amatsu",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Chameleos",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Fatalis",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Crimson Fatalis",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "White Fatalis",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Kirin",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Kushala Daora",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Lao-Shan Lung",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Nakarkos",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Shagaru Magala",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Teostra",
+    "Species": "Elder Dragon"
+  },
+  {
+    "MonsterName": "Valstrax",
+    "Species": "Elder Dragon"
+  }
+]

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache">
+<title>MHGU Bingo</title>
+<meta name="description" content="Build a seeded, shareable bingo card of MHGU hunting goals.">
+<link rel="icon" href="assets/MonsterIcons/MHGU-Question_Mark_Icon.webp">
+<!-- Bump ?v= on any styles/app/data change so browsers fetch fresh copies (no hard-refresh needed) -->
+<link rel="stylesheet" href="styles.css?v=3">
+</head>
+<body>
+<div id="app">
+  <!-- Title bar -->
+  <header class="titlebar titlebar-header">
+    <img class="title-icon" src="assets/MonsterIcons/MHGU-Question_Mark_Icon.webp" alt="">
+    <h1>MHGU Bingo</h1>
+    <div class="seedbar">
+      <input id="seedInput" type="text" spellcheck="false" autocomplete="off" placeholder="Seed — paste one to rebuild that card">
+      <span id="seedModified" class="seed-modified hidden" title="This card was rerolled, so the seed no longer rebuilds it">edited</span>
+      <button id="seedCopy" class="btn tiny">Copy</button>
+      <button id="seedApply" class="btn tiny">Load</button>
+    </div>
+    <button id="newCardBtn" class="icon-btn" title="New Card" aria-label="New Card">&#8635;</button>
+    <button id="shareBtn" class="icon-btn" title="Share this card / Twitch" aria-label="Share this card">
+      <svg viewBox="0 0 24 24" width="16" height="16" xmlns="http://www.w3.org/2000/svg" fill="#9146FF" aria-hidden="true"><path d="M11.571 4.714h1.715v5.143H11.57zm4.715 0H18v5.143h-1.714zM6 0L1.714 4.286v15.428h5.143V24l4.286-4.286h3.428L22.286 12V0Zm14.571 11.143-3.428 3.428h-3.429l-3 3v-3H6.857V1.714h13.714Z"/></svg>
+    </button>
+    <button id="linksBtn" class="icon-btn" title="Other MHGU apps" aria-label="Other MHGU apps">&#128279;</button>
+    <button id="helpBtn" class="icon-btn" title="Help" aria-label="Help">?</button>
+    <button id="themeBtn" class="icon-btn" title="Theme" aria-label="Theme">&#9881;</button>
+  </header>
+
+  <main class="layout">
+    <!-- Sidebar: card config + filters -->
+    <aside class="sidebar">
+      <button id="generateBtn" class="btn block accent">New Card</button>
+      <p id="poolStatus" class="hint"></p>
+
+      <section class="panel" data-open="true">
+        <button class="panel-head">Card Setup <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <label class="field">Grid size
+            <select id="gridSize">
+              <option value="3">3 &times; 3</option>
+              <option value="4">4 &times; 4</option>
+              <option value="5" selected>5 &times; 5</option>
+            </select>
+          </label>
+          <label class="chk"><input type="checkbox" id="freeSpace" checked>Free space in the centre</label>
+          <p class="hint">Only odd sizes can have a free space.</p>
+        </div>
+      </section>
+
+      <section class="panel" data-open="true">
+        <button class="panel-head">Card Pools <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <p class="hint">What goes in the squares. Weight biases how often a pool is drawn.</p>
+          <div id="catList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-open="false">
+        <button class="panel-head">Custom Pool <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <p class="hint">Your own goals &mdash; anything that makes a run memorable.</p>
+          <div class="cp-add">
+            <input type="text" id="cpText" placeholder="e.g. Moxie saved you, then Heat Damage got you" maxlength="40">
+            <input type="number" id="cpWeight" class="num" value="5" min="1" max="9" title="Weight 1-9">
+            <button id="cpAdd" class="btn tiny">Add</button>
+          </div>
+          <p class="hint">Up to 40 characters, so squares never need shrinking.</p>
+          <div id="cpList" class="cp-list"></div>
+          <hr class="modal-divider">
+          <div class="row gap">
+            <button id="cpExport" class="btn tiny" style="flex:1">Export</button>
+            <button id="cpImport" class="btn tiny" style="flex:1">Import</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" data-open="false">
+        <button class="panel-head">Quest Filters <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <p class="hint">Narrows which monsters and objectives can appear on a card.</p>
+          <label class="field">Quest type
+            <select id="questType">
+              <option value="ALL" selected>All</option>
+              <option value="Village">Village</option>
+              <option value="Hub">Hub</option>
+              <option value="Pub">Pub (G-Rank)</option>
+              <option value="Special Permits">Special Permits</option>
+              <option value="Events">Events</option>
+              <option value="Arena">Arena</option>
+            </select>
+          </label>
+          <div class="row gap">
+            <label class="field" style="flex:1">From<select id="fromLevel"></select></label>
+            <label class="field" style="flex:1">To<select id="toLevel"></select></label>
+          </div>
+          <hr class="modal-divider">
+          <label class="chk"><input type="checkbox" id="f_keysOnly">Key quests only</label>
+          <label class="chk"><input type="checkbox" id="f_large" checked>Large monsters</label>
+          <label class="chk"><input type="checkbox" id="f_hyper" checked>Hyper</label>
+          <label class="chk"><input type="checkbox" id="f_capture" checked>Capture</label>
+          <label class="chk"><input type="checkbox" id="f_egg" checked>Egg delivery</label>
+          <label class="chk"><input type="checkbox" id="f_gathering" checked>Gathering</label>
+          <label class="chk"><input type="checkbox" id="f_small" checked>Small monsters</label>
+          <label class="chk"><input type="checkbox" id="f_multi" checked>Multi-monster</label>
+          <label class="chk"><input type="checkbox" id="f_oneFaint" checked>One faint allowed</label>
+          <label class="chk"><input type="checkbox" id="f_onSite" checked>On-site items only</label>
+          <label class="chk"><input type="checkbox" id="f_prowler">Prowler quests</label>
+        </div>
+      </section>
+
+      <section class="panel" data-open="false">
+        <button class="panel-head">Monsters <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <div class="row gap">
+            <button id="monAll" class="btn tiny" style="flex:1">All</button>
+            <button id="monNone" class="btn tiny" style="flex:1">None</button>
+          </div>
+          <div id="monsterTree" class="tree"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-open="false">
+        <button class="panel-head">Weapons <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <div class="row gap">
+            <button id="wepAll" class="btn tiny" style="flex:1">All</button>
+            <button id="wepNone" class="btn tiny" style="flex:1">None</button>
+          </div>
+          <div id="weaponList"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-open="false">
+        <button class="panel-head">Styles <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <p class="hint">Uncheck all to make weapon goals weapon-only.</p>
+          <div id="styleList"></div>
+        </div>
+      </section>
+
+      <button id="resetBtn" class="btn block">Reset Settings</button>
+    </aside>
+
+    <!-- Card -->
+    <section class="stage">
+      <div id="banner" class="banner hidden"></div>
+      <div class="card-wrap">
+        <div id="bingoCard" class="bingo-card" data-n="5"></div>
+      </div>
+      <p id="status" class="status" aria-live="polite"></p>
+    </section>
+  </main>
+</div>
+
+<!-- ── Modals (siblings of #app) ─────────────────────────────────────────────── -->
+<div id="helpModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>MHGU Bingo</h2>
+    <p>Pick a grid size, choose which pools fill the squares, then hit <strong>New Card</strong>.
+       Click a square when you've done it. Complete a row, column or diagonal for a bingo.</p>
+
+    <h3>Pools</h3>
+    <ul>
+      <li><strong>Monsters</strong> &mdash; hunt a monster at a given rank, e.g. <em>Hunt Rathalos</em>
+          (High Rank). A monster huntable at more than one rank gets a square for each.</li>
+      <li><strong>Weapons</strong> &mdash; clear anything with a given weapon and style.</li>
+      <li><strong>Objectives</strong> &mdash; capture something, clear a Hyper quest, no-faint runs.</li>
+      <li><strong>Custom</strong> &mdash; whatever you add yourself.</li>
+    </ul>
+    <p>Goals are always checked against your filters first, so a card will never ask for
+       something you've excluded, or for a rank you've filtered out.</p>
+
+    <h3>Seeds</h3>
+    <p>Every card has a seed like <code>MHGU-5F-M4W3O2C3-K7T2NX-9C4A</code>, shown in the title bar.
+       Paste it back to rebuild the same card. It carries your grid size and pool weights, but
+       <strong>not</strong> your filters or custom entries &mdash; so if a friend's settings differ,
+       their card will differ too, and you'll see a warning saying so.</p>
+    <p>To share the <em>exact</em> card, including custom squares, use the Twitch button. That
+       uploads the card and gives you a short link that always rebuilds it perfectly.</p>
+
+    <h3>Twitch</h3>
+    <p>The Twitch button also hands you two ready-made commands. <code>!bingo</code> rolls a
+       brand-new card for whoever runs it and prints the seed alongside the link, so anyone in
+       chat can rebuild that same board here. <code>!mycard</code> instead points at your own
+       card, for when you want chat following along with yours.</p>
+    <p class="hint">Cards rolled by the bot use the default pools and filters, which is why the
+       seed it prints reproduces exactly for anyone opening this app fresh.</p>
+
+    <h3>Rerolling</h3>
+    <p>Hover a square and hit <strong>&#8635;</strong> to swap just that goal. Once you do, the seed
+       no longer rebuilds the card &mdash; it's marked <em>edited</em> and you'll need a share link
+       to pass it on.</p>
+
+    <p class="hint">Marks and settings are saved in this browser. Printing (Ctrl&#8209;P) gives a
+       clean black-and-white card.</p>
+    <div class="row end gap"><button id="helpClose" class="btn">Close</button></div>
+  </div>
+</div>
+
+<div id="linksModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Other MHGU Apps</h2>
+    <p class="hint">Companion fan tools by the same author. Each opens in a new tab.</p>
+    <ul class="app-links">
+      <li>
+        <a href="https://armoredraven17.github.io/MHGU-Quest-Randomizer/" target="_blank" rel="noopener">Quest Randomizer</a>
+        <span class="app-desc">Rolls random quests when you can't decide what to hunt.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-collection-tracker/" target="_blank" rel="noopener">Collection Tracker</a>
+        <span class="app-desc">Tracks which weapons, armor and Palico gear you own, and what it costs to finish them.</span>
+      </li>
+      <li>
+        <a href="https://armoredraven17.github.io/mhgu-equipment-box/" target="_blank" rel="noopener">Equipment Box</a>
+        <span class="app-desc">Mirrors the in-game box &mdash; 2000 hunter slots and 1000 Palico &mdash; so you can plan where things sit.</span>
+      </li>
+      <li class="current">
+        <span class="app-name">Bingo <span class="app-here">you are here</span></span>
+        <span class="app-desc">Builds a bingo card of hunting goals, with a shareable seed so a group can race the same board.</span>
+      </li>
+    </ul>
+    <div class="row end gap"><button id="linksClose" class="btn">Close</button></div>
+  </div>
+</div>
+
+<div id="themeModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Theme</h2>
+    <div id="swatches" class="swatches"></div>
+    <div class="row end gap"><button id="themeClose" class="btn">Close</button></div>
+  </div>
+</div>
+
+<div id="poolModal" class="modal hidden">
+  <div class="modal-card">
+    <h2 id="poolModalTitle">Custom Pool</h2>
+    <p class="hint" id="poolModalHint">Copy this to save your pool, or paste one in and hit Import.</p>
+    <textarea id="poolModalText" spellcheck="false"></textarea>
+    <div class="row end gap" style="margin-top:10px">
+      <button id="poolModalAction" class="btn">Import</button>
+      <button id="poolModalClose" class="btn">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="shareModal" class="modal hidden">
+  <div class="modal-card">
+    <h2>Share this card</h2>
+    <div id="shareBody"></div>
+    <div class="row end gap"><button id="shareClose" class="btn">Close</button></div>
+  </div>
+</div>
+
+<script src="data.js?v=1"></script>
+<script src="app.js?v=3"></script>
+</body>
+</html>
