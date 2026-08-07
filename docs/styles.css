@@ -207,7 +207,7 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
 .bingo-card{
   width:min(100cqi,100cqh);height:min(100cqi,100cqh);
   container-type:inline-size;
-  display:grid;gap:.9cqi;
+  display:grid;gap:calc(4.5cqi / var(--n));
   grid-template-columns:repeat(var(--n),1fr);
   grid-template-rows:repeat(var(--n),1fr);
 }
@@ -216,7 +216,7 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
   border:2px solid transparent;border-radius:8px;
   background:#ffffff12;color:var(--text);font-family:inherit;text-align:center;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:.4cqi;padding:.9cqi;min-width:0;min-height:0;
+  gap:calc(2cqi / var(--n));padding:calc(4.5cqi / var(--n));min-width:0;min-height:0;
   transition:background .12s,border-color .12s;
 }
 .cell:hover{background:#ffffff20}
@@ -265,16 +265,19 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
 .cell.empty:hover{background:#ffffff12}
 .cell-icon{width:34%;max-height:38%;object-fit:contain;flex-shrink:0}
 .cell-sub{opacity:.72;line-height:1.1}
-/* Three lines is what a 40-character entry needs at this size, which is why the custom
-   pool caps there. overflow-wrap catches a single unbroken 40-character word, which would
-   otherwise run past the square's edge instead of wrapping. */
-.cell-text{line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow-wrap:anywhere}
-.bingo-card[data-n="3"] .cell-text{font-size:3.4cqi}
-.bingo-card[data-n="4"] .cell-text{font-size:2.6cqi}
-.bingo-card[data-n="5"] .cell-text{font-size:2.1cqi}
-.bingo-card[data-n="3"] .cell-sub{font-size:2.2cqi}
-.bingo-card[data-n="4"] .cell-sub{font-size:1.7cqi}
-.bingo-card[data-n="5"] .cell-sub{font-size:1.4cqi}
+/* A 40-character entry (the MAX_CELL_TEXT cap) needs three lines at 5x5 and four on the
+   bigger grids, where the fixed 2px border eats proportionally more of a smaller cell. The
+   clamp is a safety net rather than the fitting mechanism, so it sits at four everywhere —
+   there is vertical room for roughly ten lines at any size. overflow-wrap catches a single
+   unbroken 40-character word, which would otherwise run past the square's edge. */
+.cell-text{line-height:1.15;overflow:hidden;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+/* Text scales inversely with the column count, so a square holds about the same number of
+   characters at any grid size. The constants reproduce the sizes these rules used to hard-
+   code for 3/4/5 (3.4 / 2.6 / 2.1 cqi and 2.2 / 1.7 / 1.4) and carry on up to 10 without
+   another rule per size. Still not shrink-to-fit — MAX_CELL_TEXT is what guarantees the
+   text fits; this just picks the size for the grid. */
+.bingo-card .cell-text{font-size:calc(10.4cqi / var(--n))}
+.bingo-card .cell-sub{font-size:calc(6.8cqi / var(--n))}
 
 .cell-reroll{
   position:absolute;top:2%;right:2%;opacity:0;transition:opacity .12s;

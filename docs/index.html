@@ -10,7 +10,7 @@
      MH4G-Ball_Icon_Purple — its copy carries a .png extension but the bytes are WebP. -->
 <link rel="icon" type="image/webp" href="assets/ItemIcons/MH4G-Ball_Icon_Purple.webp">
 <!-- Bump ?v= on any styles/app/data change so browsers fetch fresh copies (no hard-refresh needed) -->
-<link rel="stylesheet" href="styles.css?v=7">
+<link rel="stylesheet" href="styles.css?v=10">
 </head>
 <body>
 <div id="app">
@@ -47,6 +47,11 @@
               <option value="3">3 &times; 3</option>
               <option value="4">4 &times; 4</option>
               <option value="5" selected>5 &times; 5</option>
+              <option value="6">6 &times; 6</option>
+              <option value="7">7 &times; 7</option>
+              <option value="8">8 &times; 8</option>
+              <option value="9">9 &times; 9</option>
+              <option value="10">10 &times; 10</option>
             </select>
           </label>
           <label class="chk"><input type="checkbox" id="freeSpace" checked>Free space in the centre</label>
@@ -102,7 +107,6 @@
           <label class="chk"><input type="checkbox" id="f_multi" checked>Multi-monster</label>
           <label class="chk"><input type="checkbox" id="f_oneFaint" checked>One faint allowed</label>
           <label class="chk"><input type="checkbox" id="f_onSite" checked>On-site items only</label>
-          <label class="chk"><input type="checkbox" id="f_prowler">Prowler quests</label>
         </div>
       </section>
 
@@ -114,6 +118,15 @@
             <button id="monNone" class="btn tiny" style="flex:1">None</button>
           </div>
           <div id="monsterTree" class="tree"></div>
+        </div>
+      </section>
+
+      <section class="panel" data-open="false">
+        <button class="panel-head">Prowler <span class="chev">&#9662;</span></button>
+        <div class="panel-body">
+          <label class="chk"><input type="checkbox" id="f_prowler">Include Prowler quests</label>
+          <p class="hint">Adds &ldquo;Clear as a Prowler&rdquo; squares, one per bias below.</p>
+          <div id="biasList"></div>
         </div>
       </section>
 
@@ -317,6 +330,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=14"></script>
+<script src="app.js?v=15"></script>
 </body>
 </html>

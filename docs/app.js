@@ -37,6 +37,7 @@
   // leaves headroom for custom entries without overflowing a 5x5 square.
   const MAX_CELL_TEXT = 40;
 
+  const BIAS_NAMES = () => BIASES.map(b => b[0]);
   const BIASES = [
     ["Charisma",  "FourthGen-Palico_Icon_Blue.webp"],
     ["Fighting",  "Palico_Weapon_Cutting_Icon_Red.webp"],
@@ -47,6 +48,7 @@
     ["Gathering", "MH4G-Boomerang_Icon_Blue.webp"],
     ["Beast",     "FourthGen-Claw_Icon_Dark_Red.webp"],
   ];
+  const BIAS_FILE = Object.fromEntries(BIASES);
 
   const SP_TIERS = {I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10,G1:11,G2:12,G3:13,G4:14,G5:15,EX:16};
 
@@ -169,7 +171,7 @@
   const b32 = (n, len) => { let s = ""; for (let i = 0; i < len; i++) { s = B32[n & 31] + s; n = n >>> 5; } return s; };
   const CAT_LETTER = { monster:"M", weapon:"W", objective:"O", custom:"C" };
   const LETTER_CAT = Object.fromEntries(Object.entries(CAT_LETTER).map(([k, v]) => [v, k]));
-  const SEED_RE = /^MHGU-([345])([FN])-((?:[MWOC][1-9])+)-([0-9A-Z]{6})-([0-9A-Z]{4})$/;
+  const SEED_RE = /^MHGU-([3-9]|10)([FN])-((?:[MWOC][1-9])+)-([0-9A-Z]{6})-([0-9A-Z]{4})$/;
 
   // The one and only unseeded call in this file.
   const newToken = () => b32(Math.floor(Math.random() * 0x100000000), 6);
@@ -194,7 +196,8 @@
       "R" + [...f.ranks].sort().join("."),
       "M" + [...f.includedMonsters].sort().join("."),
       "W" + f.weapons.slice().sort().join("."),
-      "S" + f.styles.slice().sort().join("."),
+      "S" + f.styles.slice().sort().join(".") ,
+      "P" + f.biases.slice().sort().join("."),
       "F" + ["large","keysOnly","hyper","capture","egg","gathering","small","multi","oneFaint","onSite","pQuests"]
         .map(k => f[k] ? 1 : 0).join(""),
       "C" + pool.filter(c => c.checked).map(c => c.text + "@" + c.weight).sort().join("."),
@@ -343,7 +346,10 @@
     }
     // Prowler goals only make sense if Prowler quests are in the pool at all.
     if (f.pQuests && pool.some(q => q.Prowler)) {
+      // One square per enabled bias, in BIASES order so the list is identical here and in
+      // the Worker.
       for (const [name, file] of BIASES) {
+        if (!f.biases.includes(name)) continue;
         out.push({ key: "w:Prowler|" + name, cat: "weapon", text: "Clear as a Prowler", sub: name, icon: prowlerIcon(file), tint: WEAPON_COLORS.Prowler });
       }
     }
@@ -435,7 +441,7 @@
       ranks: new Set(ALL_RANKS),
       includedMonsters: new Set(DATA.monsters.map(m => m.MonsterName.toLowerCase())),
       monsterFilterActive: false,
-      weapons: WEAPONS, styles: STYLES,
+      weapons: WEAPONS, styles: STYLES, biases: BIAS_NAMES(),
     };
   }
 
@@ -662,6 +668,8 @@
     document.querySelectorAll("#weaponList input:checked").forEach(cb => weapons.push(cb.dataset.name));
     const styles = [];
     document.querySelectorAll("#styleList input:checked").forEach(cb => styles.push(cb.dataset.name));
+    const biases = [];
+    document.querySelectorAll("#biasList input:checked").forEach(cb => biases.push(cb.dataset.name));
     return {
       large: $("f_large").checked, keysOnly: $("f_keysOnly").checked,
       hyper: $("f_hyper").checked, capture: $("f_capture").checked,
@@ -672,7 +680,7 @@
       ranks: new Set(RANK_FILTERS.filter(([id]) => $(id).checked).map(([, , cat]) => cat)),
       includedMonsters: inc,
       monsterFilterActive: inc.size < DATA.monsters.length,
-      weapons, styles,
+      weapons, styles, biases,
     };
   }
 
@@ -921,6 +929,7 @@
       offMonsters: off("#monsterTree input.mon"),
       offWeapons: off("#weaponList input"),
       offStyles: off("#styleList input"),
+      offBiases: off("#biasList input"),
     };
   }
 
@@ -959,6 +968,7 @@
     applyOff("#monsterTree input.mon", f.offMonsters);
     applyOff("#weaponList input", f.offWeapons);
     applyOff("#styleList input", f.offStyles);
+    applyOff("#biasList input", f.offBiases);
     refreshSpeciesBoxes();
   }
 
@@ -1374,7 +1384,7 @@
                             ["f_keysOnly", false], ["f_large", true], ["f_hyper", true], ["f_capture", true],
                             ["f_egg", true], ["f_gathering", true], ["f_small", true], ["f_multi", true],
                             ["f_oneFaint", true], ["f_onSite", true], ["f_prowler", false]]) $(id).checked = on;
-    document.querySelectorAll("#monsterTree input, #weaponList input, #styleList input").forEach(cb => { cb.checked = true; cb.indeterminate = false; });
+    document.querySelectorAll("#monsterTree input, #weaponList input, #styleList input, #biasList input").forEach(cb => { cb.checked = true; cb.indeterminate = false; });
     buildCatRows();
     syncFreeSpace();
     saveSettings();
@@ -1400,6 +1410,7 @@
     buildMonsterTree();
     buildChecklist("weaponList", WEAPONS, weaponIcon);
     buildChecklist("styleList", STYLES, null);
+    buildChecklist("biasList", BIAS_NAMES(), (n) => prowlerIcon(BIAS_FILE[n]));
     buildSwatches();
     loadPool();
     renderPool();

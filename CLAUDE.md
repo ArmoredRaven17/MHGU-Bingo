@@ -65,7 +65,7 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 | Pool | Cell | Colour |
 |---|---|---|
 | Monsters | `Hunt Rathalos` + a rank sub-line | by rank (Low/High/G) |
-| Weapons | `Clear with Hunting Horn` + a style sub-line | by weapon |
+| Weapons | `Clear with Hunting Horn` + a style sub-line, plus one `Clear as a Prowler` per enabled bias | by weapon |
 | Objectives | `Capture a monster` | one flat colour |
 | Custom | the user's own text | one flat colour |
 
@@ -129,8 +129,11 @@ theme's colour until the next card.
 
 ## Cell text is capped, never shrunk
 
-`MAX_CELL_TEXT` (40) in `app.js` is the ceiling for custom entries, chosen because 40 characters
-is exactly what fits in the 3-line clamp at 5×5. Every generated goal is shorter than that by
+`MAX_CELL_TEXT` (40) in `app.js` is the ceiling for custom entries. Grid sizes run 3-10, and
+font size, cell padding and grid gap are all `calc(... / var(--n))` so a square holds about the
+same number of characters at any size — the constants reproduce what 3/4/5 used to hard-code.
+The line clamp sits at 4 because a 40-character entry needs three lines at 5×5 and four on the
+bigger grids, where the fixed 2px border eats proportionally more of a smaller cell. Every generated goal is shorter than that by
 construction. If you add a pool, keep its longest possible text under the cap rather than
 reducing the font size — the whole point is that all cards render at one size.
 
