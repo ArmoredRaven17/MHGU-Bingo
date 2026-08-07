@@ -1373,6 +1373,38 @@
     if (card) renderCard();
   }
 
+  // Built from CATEGORY_COLORS / POOL_COLORS / WEAPON_COLORS rather than repeated in the
+  // markup, so the Help legend can never drift from what the cards actually draw.
+  function buildColourLegend() {
+    const row = (host, colour, label) => {
+      const d = document.createElement("div");
+      const sw = document.createElement("span");
+      sw.className = "sw";
+      sw.style.borderColor = colour;
+      d.appendChild(sw);
+      d.appendChild(document.createTextNode(label));
+      host.appendChild(d);
+    };
+    const cats = $("legendCats");
+    cats.textContent = "";
+    for (const [colour, label] of [
+      [CATEGORY_COLORS.Low, "Low Rank"], [CATEGORY_COLORS.High, "High Rank"],
+      [CATEGORY_COLORS.G, "G Rank"], [CATEGORY_COLORS.SP, "Special Permits"],
+      [CATEGORY_COLORS.Event, "Events"], [CATEGORY_COLORS.Arena, "Arena"],
+      [POOL_COLORS.objective, "Objectives"], [POOL_COLORS.custom, "Your own entries"],
+    ]) row(cats, colour, label);
+
+    const strip = $("legendWeapons");
+    strip.textContent = "";
+    for (const w of WEAPONS.concat("Prowler")) {
+      const sw = document.createElement("span");
+      sw.className = "sw";
+      sw.style.borderColor = WEAPON_COLORS[w];
+      sw.title = w;
+      strip.appendChild(sw);
+    }
+  }
+
   function buildSwatches() {
     const wrap = $("swatches");
     wrap.textContent = "";
@@ -1508,6 +1540,7 @@
     buildChecklist("styleList", STYLES, null);
     buildChecklist("biasList", BIAS_NAMES(), (n) => prowlerIcon(BIAS_FILE[n]));
     buildSwatches();
+    buildColourLegend();
     loadPool();
     renderPool();
     loadSettings();

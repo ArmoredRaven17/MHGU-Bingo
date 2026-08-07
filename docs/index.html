@@ -10,7 +10,7 @@
      MH4G-Ball_Icon_Purple — its copy carries a .png extension but the bytes are WebP. -->
 <link rel="icon" type="image/webp" href="assets/ItemIcons/MH4G-Ball_Icon_Purple.webp">
 <!-- Bump ?v= on any styles/app/data change so browsers fetch fresh copies (no hard-refresh needed) -->
-<link rel="stylesheet" href="styles.css?v=12">
+<link rel="stylesheet" href="styles.css?v=13">
 </head>
 <body>
 <div id="app">
@@ -196,31 +196,48 @@
     <p>Goals are always checked against your filters first, so a card will never ask for
        something you've excluded, or for a rank you've filtered out.</p>
 
+    <h3>Colours</h3>
+    <p>A square's outline tells you which filter put it there.</p>
+    <div id="legendCats" class="legend"></div>
+    <p class="hint">Weapon squares use that weapon's own colour instead:</p>
+    <div id="legendWeapons" class="legend-strip"></div>
+    <p class="hint" style="margin-top:10px">Marking a square keeps its colour but lightens it and
+       draws a cross through it. A completed line overrides all of that and fills the squares
+       solid, in a colour picked to contrast with whatever theme you're using.</p>
+
     <h3>Seeds</h3>
     <p>Every card has a seed like <code>MHGU-5F-M4W3O2C3-K7T2NX-9C4A</code>, shown in the title bar.
-       Paste it back to rebuild the same card. It carries your grid size and pool weights, but
-       <strong>not</strong> your filters or custom entries &mdash; so if a friend's settings differ,
-       their card will differ too, and you'll see a warning saying so.</p>
-    <p>To share the <em>exact</em> card, including custom squares, open the Twitch button and hit
-       <strong>Publish this card</strong>. That gives you a short link which always rebuilds it
-       perfectly, however different the other person's settings are.</p>
+       Paste one back to rebuild that card.</p>
+    <p>The seed carries your grid size and pool weights, but not your filters or your custom
+       entries &mdash; there's no room. So what happens when someone else loads it depends on how
+       the card was made:</p>
+    <ul>
+      <li>Made on the <strong>default</strong> pools and filters &mdash; which is every card the
+          bot rolls &mdash; it rebuilds <em>exactly</em> for anyone, even someone who has since
+          customised their own settings. The app spots that and rebuilds using the defaults.</li>
+      <li>Made with your <strong>own</strong> filters or custom squares, it can't be rebuilt from
+          28 characters. It still generates, and a banner says plainly that it may not match.</li>
+    </ul>
+    <p>To share a card whose squares are exactly yours, set your channel under the Twitch button
+       and use <strong>Use the card you're looking at</strong>. That sends the board on screen to
+       your channel, so <code>!currentcard</code> and its link show it &mdash; custom squares and
+       all, whatever settings the person opening it has.</p>
 
     <h3>Twitch</h3>
-    <p>The Twitch button holds two ready-made bot commands. There's no account and nothing to log
-       into &mdash; they're just URLs for a chat bot to fetch.</p>
+    <p>Three ready-made bot commands, under the Twitch button. Log in and your channel is filled
+       in for you, so they come out complete &mdash; copy, paste, done, with nothing in them to
+       edit. They keep working however many cards you make.</p>
     <ul>
       <li><code>!bingo</code> rolls a brand-new card for whoever runs it and prints the seed
-          alongside the link. It works on its own, with nothing published first.</li>
+          alongside the link. It needs nothing set up first.</li>
       <li><code>!currentcard</code> points at the stream's current card, for when chat should
           follow along with yours.</li>
-      <li><code>!setcurrentcard</code> rolls a new card and makes it the stream's. Restrict it
-          to moderators.</li>
+      <li><code>!setcurrentcard</code> rolls a new card and makes it the stream's.
+          <strong>Restrict this one to moderators</strong> &mdash; anyone who can run it can
+          reroll your card.</li>
     </ul>
-    <p class="hint">Log in with Twitch and your channel is filled in for you, so the commands
-       come out complete &mdash; copy, paste, done, with nothing in them to edit. They keep
-       working however many cards you make.</p>
-    <p class="hint">Cards rolled by the bot use the default pools and filters, which is why the
-       seed it prints reproduces exactly for anyone opening this app fresh.</p>
+    <p class="hint">Cards the bot rolls use the default pools and filters, which is why the seed
+       it prints reproduces exactly for whoever pastes it.</p>
 
     <h3>Rerolling</h3>
     <p>Hover a square and hit <strong>&#8635;</strong> to swap just that goal. Once you do, the seed
@@ -295,10 +312,9 @@
 <div id="twitchModal" class="modal hidden">
   <div class="modal-card">
     <h2>Twitch Bot</h2>
-    <p class="hint">There's nothing to log into &mdash; these are just URLs. Nightbot takes the
-       whole <code>$(urlfetch &hellip;)</code> line as the command text; Moobot and most others
-       want the plain URL dropped into their own URL-fetch tag instead, not as the command
-       itself. Both forms are listed below.</p>
+    <p class="hint">Nightbot takes the whole <code>$(urlfetch &hellip;)</code> line as the command
+       text; Moobot and most others want the plain URL dropped into their own URL-fetch tag
+       instead, not as the command itself. Both forms are listed below.</p>
 
     <div id="twitchLoggedOut">
       <p class="hint" style="margin-top:10px">Log in and your channel is filled in for you, so the
@@ -358,6 +374,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=22"></script>
+<script src="app.js?v=24"></script>
 </body>
 </html>
