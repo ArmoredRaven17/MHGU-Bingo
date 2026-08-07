@@ -21,10 +21,13 @@
   // Every cell carries a colour so no pool looks like the odd one out. Where a cell has a
   // sub-line the colour encodes it — weapon colours above, hunt rank here — and the pools
   // with no sub-line get one flat colour each.
-  // Border of a marked square. Muted rather than solid white so it reads as "done"
-  // without shouting over the --win fill a completed line gets. Kept in step with the
-  // .cell.marked rule in styles.css.
-  const MARKED_BORDER = "rgba(255,255,255,.38)";
+  // Border of a marked square: the pool's own colour, lightened. Solid white shouted over
+  // the --win fill a completed line gets, but a dimmed white just vanished — on a dark
+  // theme a low-alpha white over a dark fill is nothing at all. Lightening the tint keeps
+  // it visible on every theme, keeps the pool readable at a glance, and still leaves the
+  // win treatment as the loudest thing on the card.
+  const markedBorder = (tint) =>
+    tint ? css(lighten(hexRgb(tint), 0.55)) : "rgba(255,255,255,.55)";
 
   const RANK_COLORS = { Low: "#4aa3df", High: "#f5b400", G: "#e0523f", "": "#8a8f98" };
   const CAT_COLORS  = { objective: "#9b8cff", custom: "#5ec9a0", free: "#8a8f98" };
@@ -586,7 +589,7 @@
     for (let i = 0; i < cells.length; i++) {
       cells[i].classList.toggle("line", lit.has(i));
       cells[i].style.borderColor = lit.has(i) ? "var(--win)"
-        : card.marked.has(i) ? MARKED_BORDER
+        : card.marked.has(i) ? markedBorder(card.cells[i].tint)
         : (card.cells[i].tint || "");
     }
 
