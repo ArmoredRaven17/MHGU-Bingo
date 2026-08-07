@@ -73,6 +73,21 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 found in the filtered quest pool, so a monster huntable at two ranks yields two squares. The
 quest filters still matter — they decide which monsters and ranks exist and gate the objectives.
 
+### Quest filters are six rank categories, not quest types
+
+Village / Hub / Pub are just delivery mechanisms for a rank, so the filters are **Low, High,
+G, Special Permits, Events, Arena** rather than the Randomizer's quest-type dropdown plus a
+level range. `questCategory()` is that filter axis.
+
+`rankLabel()` is separate, and is what a square's sub-line shows. The two deliberately differ:
+a Special Permit filters under **SP** but still displays *High Rank* or *G Rank*, because that's
+the hunt you actually go and do. Events filter under **Event** and display *Event · High Rank* —
+they span Low/High/G like anything else, but finding the Event version is a different job, so
+the label says so. Arena has no rank band and shows no sub-line.
+
+`baseRank()` is the third piece: the plain Low/High/G used for the cell colour, so an Event
+square is still tinted by its real difficulty.
+
 Monster names come from the quests themselves, **not** `LgMonsters.json`. The two disagree in
 both directions: `White Fatalis` is listed but appears in zero quests, while `Silver Rathalos`,
 `Gold Rathian` and `Old Fatalis` appear in quests but aren't listed.

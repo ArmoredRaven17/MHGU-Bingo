@@ -85,21 +85,12 @@
         <button class="panel-head">Quest Filters <span class="chev">&#9662;</span></button>
         <div class="panel-body">
           <p class="hint">Narrows which monsters and objectives can appear on a card.</p>
-          <label class="field">Quest type
-            <select id="questType">
-              <option value="ALL" selected>All</option>
-              <option value="Village">Village</option>
-              <option value="Hub">Hub</option>
-              <option value="Pub">Pub (G-Rank)</option>
-              <option value="Special Permits">Special Permits</option>
-              <option value="Events">Events</option>
-              <option value="Arena">Arena</option>
-            </select>
-          </label>
-          <div class="row gap">
-            <label class="field" style="flex:1">From<select id="fromLevel"></select></label>
-            <label class="field" style="flex:1">To<select id="toLevel"></select></label>
-          </div>
+          <label class="chk"><input type="checkbox" id="f_low" checked>Low Rank</label>
+          <label class="chk"><input type="checkbox" id="f_high" checked>High Rank</label>
+          <label class="chk"><input type="checkbox" id="f_g" checked>G Rank</label>
+          <label class="chk"><input type="checkbox" id="f_sp" checked>Special Permits</label>
+          <label class="chk"><input type="checkbox" id="f_event" checked>Events</label>
+          <label class="chk"><input type="checkbox" id="f_arena" checked>Arena</label>
           <hr class="modal-divider">
           <label class="chk"><input type="checkbox" id="f_keysOnly">Key quests only</label>
           <label class="chk"><input type="checkbox" id="f_large" checked>Large monsters</label>
@@ -326,6 +317,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=11"></script>
+<script src="app.js?v=14"></script>
 </body>
 </html>

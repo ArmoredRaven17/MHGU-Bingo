@@ -50,32 +50,6 @@
 
   const SP_TIERS = {I:1,II:2,III:3,IV:4,V:5,VI:6,VII:7,VIII:8,IX:9,X:10,G1:11,G2:12,G3:13,G4:14,G5:15,EX:16};
 
-  // Level tables. NOTE the deliberate divergence from the Quest Randomizer documented in
-  // CLAUDE.md: 20 Arena quests carry Level 3 (the "Arena // Event:" set), which the
-  // randomizer's 0-44 rank range can't reach. Both tables below define that third level,
-  // so those quests are selectable here.
-  const LEVELS = {
-    "ALL": [
-      ["Village 1★",0],["Village 2★",1],["Village 3★",2],["Village 4★",3],
-      ["Village 5★",4],["Village 6★",5],["Village 7★",6],["Village 8★",7],
-      ["Village 9★",8],["Village 10★",9],["Village 10★ Adv.",10],
-      ["Hub 1★",11],["Hub 2★",12],["Hub 3★",13],["Hub 4★",14],
-      ["Hub 5★",15],["Hub 6★",16],["Hub 7★",17],["Hub 8★",18],
-      ["G1★",19],["G2★",20],["G3★",21],["G4★",22],["G4★ HR13+",23],
-      ["Deviant I",24],["Deviant II",25],["Deviant III",26],["Deviant IV",27],
-      ["Deviant V",28],["Deviant VI",29],["Deviant VII",30],["Deviant VIII",31],
-      ["Deviant IX",32],["Deviant X",33],["Deviant G1",34],["Deviant G2",35],
-      ["Deviant G3",36],["Deviant G4",37],["Deviant G5",38],["Deviant EX",39],
-      ["Event Low Rank",40],["Event High Rank",41],["Event G Rank",42],
-      ["Arena Normal",43],["Arena Challenge",44],["Arena Event",45],
-    ],
-    Village: [["1★",1],["2★",2],["3★",3],["4★",4],["5★",5],["6★",6],["7★",7],["8★",8],["9★",9],["10★",10],["10★ Advanced",11]],
-    Hub:     [["1★",1],["2★",2],["3★",3],["4★",4],["5★",5],["6★",6],["7★",7],["8★",8]],
-    Pub:     [["G1★",1],["G2★",2],["G3★",3],["G4★",4],["G4★ (HR13+)",5]],
-    Arena:   [["Normal",1],["Challenge",2],["Event",3]],
-    "Special Permits": [["I",1],["II",2],["III",3],["IV",4],["V",5],["VI",6],["VII",7],["VIII",8],["IX",9],["X",10],["G1",11],["G2",12],["G3",13],["G4",14],["G5",15],["EX",16]],
-    Events:  [["Low Rank",1],["High Rank",2],["G Rank",3]],
-  };
 
   const COLORS = [
     ["Teostra","#570B0B"],["Rathalos","#b51717"],
@@ -113,22 +87,12 @@
     const s = name.lastIndexOf(" ", c - 1); if (s < 0) return 0;
     return SP_TIERS[name.slice(s + 1, c)] || 0;
   }
-  // Maps each quest to its position in the unified ALL range (0-45).
-  function allRank(q) {
-    switch (q.Type) {
-      case "Village":         return q.Level - 1;
-      case "Hub":             return 10 + q.Level;
-      case "Pub":             return 18 + q.Level;
-      case "Special Permits": return 23 + spTier(q.Name || "");
-      case "Events":          return 39 + q.Level;
-      case "Arena":           return 42 + q.Level;
-      default:                return -1;
-    }
-  }
   // Which rank band a quest belongs to. Village is Low throughout; Hub crosses into High
   // at 4★; Pub is G Rank; Special Permits cross at the G tiers; Events carry their rank in
   // Level. Arena quests don't sit on that ladder, so they contribute no rank.
-  function questRank(q) {
+  // Underlying difficulty band. Drives the cell colour, and is what an Event quest's
+  // rank is measured against — Events span Low/High/G like anything else.
+  function baseRank(q) {
     switch (q.Type) {
       case "Village":         return "Low";
       case "Hub":             return q.Level <= 3 ? "Low" : "High";
@@ -137,6 +101,35 @@
       case "Events":          return q.Level === 1 ? "Low" : q.Level === 2 ? "High" : "G";
       default:                return "";
     }
+  }
+
+  // What the sub-line on a monster square reads. Events keep their rank but say so, since
+  // "Hunt Rathalos / High Rank" and the Event version are different hunts to go and find.
+  function rankLabel(q) {
+    const r = baseRank(q);
+    if (!r) return "";
+    return (q.Type === "Events" ? "Event · " : "") + r + " Rank";
+  }
+
+  // What the quest filters switch on. Village / Hub / Pub / Events are just delivery
+  // mechanisms for a rank, so they collapse into Low / High / G; Special Permits and Arena
+  // are their own thing and stay separate. This is the filter axis — rankLabel above stays
+  // the *display* rank, which is why an SP quest still shows "High Rank" on a card.
+  const RANK_FILTERS = [
+    ["f_low",   "Low Rank",         "Low"],
+    ["f_high",  "High Rank",        "High"],
+    ["f_g",     "G Rank",           "G"],
+    ["f_sp",    "Special Permits",  "SP"],
+    ["f_event", "Events",           "Event"],
+    ["f_arena", "Arena",            "Arena"],
+  ];
+  const ALL_RANKS = RANK_FILTERS.map(r => r[2]);
+
+  function questCategory(q) {
+    if (q.Type === "Special Permits") return "SP";
+    if (q.Type === "Arena") return "Arena";
+    if (q.Type === "Events") return "Event";
+    return baseRank(q);
   }
 
   // ── Seeded RNG ─────────────────────────────────────────────────────────────
@@ -195,11 +188,10 @@
   // Order-independent description of everything that changes which goals are eligible.
   // Hashed into the seed's last segment so a pasted seed can warn that it was built under
   // different settings. Advisory only — never a correctness gate.
-  function fingerprint(f, range, pool) {
+  function fingerprint(f, pool) {
     return [
       "d" + DATA.dataVersion,
-      "T" + range.type + ":" + range.fromLv + "-" + range.toLv,
-      "L" + (f.allLevels ? [...f.allLevels].sort((a, b) => a - b).join(".") : "*"),
+      "R" + [...f.ranks].sort().join("."),
       "M" + [...f.includedMonsters].sort().join("."),
       "W" + f.weapons.slice().sort().join("."),
       "S" + f.styles.slice().sort().join("."),
@@ -261,22 +253,14 @@
   const THEME_KEY    = "mhgu-bingo-theme";
 
   // ── Quest pool ─────────────────────────────────────────────────────────────
-  // Ported from the Quest Randomizer's randomize() predicate. `range` narrows by quest
-  // type and level; `f.allLevels`, when non-null, is the set of ENABLED unified ranks
-  // (only ever supplied by the randomizer's saved filters).
-  function buildQuestPool(f, range) {
+  // Category predicate ported from the Quest Randomizer's randomize(); the rank axis is
+  // this app's own. `f.ranks` is the Set of enabled categories from RANK_FILTERS.
+  //
+  // MUST stay identical to worker/src/bingo-gen.js — a card rolled by !bingo and the same
+  // seed pasted into the app only match if both sides filter and draw the same way.
+  function buildQuestPool(f) {
     return DATA.quests.filter(q => {
-      const qType = q.Type || "";
-      const rank = allRank(q);
-      if (rank < 0) return false;
-      if (f.allLevels && !f.allLevels.has(rank)) return false;
-
-      if (range.type === "ALL") {
-        if (rank < range.fromLv || rank > range.toLv) return false;
-      } else {
-        if (qType.toLowerCase() !== range.type.toLowerCase()) return false;
-        if (q.Level < range.fromLv || q.Level > range.toLv) return false;
-      }
+      if (!f.ranks.has(questCategory(q))) return false;
 
       if (q.LgMonster && !f.large) return false;
       if (f.keysOnly && !q.Key) return false;
@@ -311,33 +295,35 @@
   // One goal per monster *per rank it's actually huntable at* in the current pool, so
   // "Hunt Rathalos" at Low and at High are separate squares and both are achievable. The
   // rank lives on the sub-line rather than in the text, which keeps every cell short.
-  const RANK_ORDER = ["Low", "High", "G", ""];
+  // Fixed emission order, so the goal list is identical here and in the Worker.
+  const RANK_ORDER = ["Low Rank", "High Rank", "G Rank",
+    "Event · Low Rank", "Event · High Rank", "Event · G Rank", ""];
   function monsterGoals(pool) {
-    const ranks = new Map();
+    const seen = new Map();   // monster -> Map(sub-line label -> base rank, for the colour)
     for (const q of pool) {
       if (!q.LgMonster) continue;
-      const rank = questRank(q);
+      const label = rankLabel(q), base = baseRank(q);
       const list = (q.Monsters && q.Monsters.length) ? q.Monsters : (q.Monster ? [q.Monster] : []);
       for (const m of list) {
         if (!m) continue;
-        if (!ranks.has(m)) ranks.set(m, new Set());
-        if (rank) ranks.get(m).add(rank);
+        if (!seen.has(m)) seen.set(m, new Map());
+        if (label) seen.get(m).set(label, base);
       }
     }
     const out = [];
-    for (const [name, set] of ranks) {
+    for (const [name, labels] of seen) {
       // A monster only ever seen in Arena quests has no rank band; it still gets a square,
       // just without a sub-line.
-      const have = set.size ? set : new Set([""]);
-      for (const rank of RANK_ORDER) {
-        if (!have.has(rank)) continue;
+      const have = labels.size ? labels : new Map([["", ""]]);
+      for (const label of RANK_ORDER) {
+        if (!have.has(label)) continue;
         out.push({
-          key: "m:" + name + ":" + rank,
+          key: "m:" + name + ":" + label,
           cat: "monster",
           text: "Hunt " + name,
-          sub: rank ? rank + " Rank" : "",
+          sub: label,
           icon: monsterIcon(name),
-          tint: RANK_COLORS[rank],
+          tint: RANK_COLORS[have.get(label)],
         });
       }
     }
@@ -442,12 +428,11 @@
   // The settings a first-time visitor has, matching doReset(). Cards rolled by the Twitch
   // bot are built from exactly these, server-side — which is what makes the seed it prints
   // reproducible here (see applySeed).
-  const DEFAULT_RANGE = { type: "ALL", fromLv: 0, toLv: 45 };
   function defaultFilters() {
     return {
       large: true, keysOnly: false, hyper: true, capture: true, egg: true, gathering: true,
       small: true, multi: true, oneFaint: true, onSite: true, pQuests: false,
-      allLevels: null,
+      ranks: new Set(ALL_RANKS),
       includedMonsters: new Set(DATA.monsters.map(m => m.MonsterName.toLowerCase())),
       monsterFilterActive: false,
       weapons: WEAPONS, styles: STYLES,
@@ -461,11 +446,10 @@
     // viewer has configured locally — otherwise a seed from chat quietly produces a
     // different board for anyone who has customised their pools.
     const f = o.defaults ? defaultFilters() : currentFilters();
-    const range = o.defaults ? DEFAULT_RANGE : currentRange();
     const cp = o.defaults ? DEFAULT_POOL : customPool;
-    const pool = buildQuestPool(f, range);
+    const pool = buildQuestPool(f);
     const body = seedBody(cfg, token);
-    const fp = b32(hashStr(fingerprint(f, range, cp)), 4);
+    const fp = b32(hashStr(fingerprint(f, cp)), 4);
     const rng = makeRng(body);                       // NOT including the fingerprint
     const built = buildCells(rng, cfg, pool, f, cp);
 
@@ -671,13 +655,6 @@
   }
 
   // ── Filters ────────────────────────────────────────────────────────────────
-  function currentRange() {
-    const type = $("questType").value;
-    const from = parseInt($("fromLevel").value, 10);
-    const to = parseInt($("toLevel").value, 10);
-    return { type, fromLv: Math.min(from, to), toLv: Math.max(from, to) };
-  }
-
   function currentFilters() {
     const inc = new Set();
     document.querySelectorAll("#monsterTree input.mon:checked").forEach(cb => inc.add(cb.dataset.name.toLowerCase()));
@@ -692,7 +669,7 @@
       small: $("f_small").checked, multi: $("f_multi").checked,
       oneFaint: $("f_oneFaint").checked, onSite: $("f_onSite").checked,
       pQuests: $("f_prowler").checked,
-      allLevels: null,
+      ranks: new Set(RANK_FILTERS.filter(([id]) => $(id).checked).map(([, , cat]) => cat)),
       includedMonsters: inc,
       monsterFilterActive: inc.size < DATA.monsters.length,
       weapons, styles,
@@ -748,7 +725,7 @@
   // rather than after.
   function refreshCounts() {
     const f = currentFilters();
-    const pool = buildQuestPool(f, currentRange());
+    const pool = buildQuestPool(f);
     let total = 0;
     for (const c of CATS) {
       const n = (cfg.cats[c.id] | 0) > 0 ? c.items(pool, f, customPool).length : 0;
@@ -929,23 +906,6 @@
     }
   }
 
-  // ── Levels ─────────────────────────────────────────────────────────────────
-  function fillLevels() {
-    const type = $("questType").value;
-    const list = LEVELS[type] || LEVELS.ALL;
-    for (const id of ["fromLevel", "toLevel"]) {
-      const sel = $(id);
-      const prev = sel.value;
-      sel.textContent = "";
-      for (const [label, val] of list) {
-        const o = document.createElement("option");
-        o.value = String(val); o.textContent = label;
-        sel.appendChild(o);
-      }
-      const keep = [...sel.options].some(o => o.value === prev);
-      sel.value = keep ? prev : String(id === "fromLevel" ? list[0][1] : list[list.length - 1][1]);
-    }
-  }
 
   // ── Persistence ────────────────────────────────────────────────────────────
   function uiFilterState() {
@@ -955,10 +915,8 @@
       return out;
     };
     return {
-      questType: $("questType").value,
-      fromLevel: $("fromLevel").value,
-      toLevel: $("toLevel").value,
-      flags: ["f_large","f_keysOnly","f_hyper","f_capture","f_egg","f_gathering","f_small","f_multi","f_oneFaint","f_onSite","f_prowler"]
+      flags: ["f_low","f_high","f_g","f_sp","f_event","f_arena",
+              "f_large","f_keysOnly","f_hyper","f_capture","f_egg","f_gathering","f_small","f_multi","f_oneFaint","f_onSite","f_prowler"]
         .reduce((a, id) => (a[id] = $(id).checked, a), {}),
       offMonsters: off("#monsterTree input.mon"),
       offWeapons: off("#weaponList input"),
@@ -993,10 +951,6 @@
     }
     const f = d.filters;
     if (!f) return;
-    if (f.questType) $("questType").value = f.questType;
-    fillLevels();
-    if (f.fromLevel) $("fromLevel").value = f.fromLevel;
-    if (f.toLevel) $("toLevel").value = f.toLevel;
     if (f.flags) for (const id of Object.keys(f.flags)) if ($(id)) $(id).checked = !!f.flags[id];
     const applyOff = (sel, names) => {
       const offs = new Set(names || []);
@@ -1039,7 +993,7 @@
 
   function rebuildBags() {
     const f = currentFilters();
-    const pool = buildQuestPool(f, currentRange());
+    const pool = buildQuestPool(f);
     const rng = makeRng(card ? card.seed + ":bags" : "bags");
     bags = {};
     for (const c of CATS) {
@@ -1416,9 +1370,8 @@
   function doReset() {
     cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
     $("gridSize").value = String(cfg.size);
-    $("questType").value = "ALL";
-    fillLevels();
-    for (const [id, on] of [["f_keysOnly", false], ["f_large", true], ["f_hyper", true], ["f_capture", true],
+    for (const [id, on] of [["f_low", true], ["f_high", true], ["f_g", true], ["f_sp", true], ["f_event", true], ["f_arena", true],
+                            ["f_keysOnly", false], ["f_large", true], ["f_hyper", true], ["f_capture", true],
                             ["f_egg", true], ["f_gathering", true], ["f_small", true], ["f_multi", true],
                             ["f_oneFaint", true], ["f_onSite", true], ["f_prowler", false]]) $(id).checked = on;
     document.querySelectorAll("#monsterTree input, #weaponList input, #styleList input").forEach(cb => { cb.checked = true; cb.indeterminate = false; });
@@ -1447,7 +1400,6 @@
     buildMonsterTree();
     buildChecklist("weaponList", WEAPONS, weaponIcon);
     buildChecklist("styleList", STYLES, null);
-    fillLevels();
     buildSwatches();
     loadPool();
     renderPool();
@@ -1467,10 +1419,8 @@
     $("freeSpace").addEventListener("change", () => {
       cfg.free = $("freeSpace").checked; saveSettings(); refreshCounts();
     });
-    $("questType").addEventListener("change", () => { fillLevels(); onFilterChange(); });
-    $("fromLevel").addEventListener("change", onFilterChange);
-    $("toLevel").addEventListener("change", onFilterChange);
-    document.querySelectorAll("#f_large,#f_keysOnly,#f_hyper,#f_capture,#f_egg,#f_gathering,#f_small,#f_multi,#f_oneFaint,#f_onSite,#f_prowler")
+    document.querySelectorAll("#f_low,#f_high,#f_g,#f_sp,#f_event,#f_arena,"
+      + "#f_large,#f_keysOnly,#f_hyper,#f_capture,#f_egg,#f_gathering,#f_small,#f_multi,#f_oneFaint,#f_onSite,#f_prowler")
       .forEach(cb => cb.addEventListener("change", onFilterChange));
 
     $("monAll").addEventListener("click", () => { document.querySelectorAll("#monsterTree input").forEach(cb => { cb.checked = true; cb.indeterminate = false; }); onFilterChange(); });
@@ -1581,7 +1531,7 @@
   // anything — so it can be reproduced exactly by rebuilding under those same defaults.
   let defaultFp = null;
   const defaultFingerprint = () => defaultFp !== null ? defaultFp
-    : (defaultFp = b32(hashStr(fingerprint(defaultFilters(), DEFAULT_RANGE, DEFAULT_POOL)), 4));
+    : (defaultFp = b32(hashStr(fingerprint(defaultFilters(), DEFAULT_POOL)), 4));
 
   function applySeed() {
     const raw = $("seedInput").value;
