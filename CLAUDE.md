@@ -73,11 +73,23 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 found in the filtered quest pool, so a monster huntable at two ranks yields two squares. The
 quest filters still matter — they decide which monsters and ranks exist and gate the objectives.
 
-### Quest filters are six rank categories, not quest types
+### Quest filters are two independent gates, not one axis
 
-Village / Hub / Pub are just delivery mechanisms for a rank, so the filters are **Low, High,
-G, Special Permits, Events, Arena** rather than the Randomizer's quest-type dropdown plus a
-level range. `questCategory()` is that filter axis.
+The six checkboxes look like one list but are two:
+
+- **Low / High / G** filter by **rank**, and apply to *every* quest that has one — including
+  Special Permits and Events. Unchecking High Rank removes High-rank permits and events too.
+- **Special Permits / Events / Arena** filter by **source**, whatever rank they are.
+
+They AND together, so a *Permit · High Rank* square needs both Special Permits and High Rank
+ticked. Village / Hub / Pub have no source checkbox of their own — they're just the rank.
+
+Treating these as a single axis was wrong twice over: unchecking High Rank left squares plainly
+reading "High Rank" on the card, and no amount of relabelling fixed the fact that the filter
+didn't do what its label says.
+
+`questCategory()` returns the tint key (source for SP/Event/Arena, rank otherwise); `baseRank()`
+is what the rank gate tests.
 
 `rankLabel()` is separate, and is what a square's sub-line shows. Anything filtered on its own
 axis is **prefixed** — *Event · High Rank*, *Permit · G Rank* — so a bare *Low/High/G Rank* only

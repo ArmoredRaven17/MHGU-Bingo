@@ -280,7 +280,19 @@
   // seed pasted into the app only match if both sides filter and draw the same way.
   function buildQuestPool(f) {
     return DATA.quests.filter(q => {
-      if (!f.ranks.has(questCategory(q))) return false;
+      // Two independent gates, not one combined axis.
+      //
+      // Source: the three categories that have their own checkbox. Unchecking Special
+      // Permits removes permits whatever rank they are.
+      const cat = questCategory(q);
+      if ((cat === "SP" || cat === "Event" || cat === "Arena") && !f.ranks.has(cat)) return false;
+
+      // Rank: applies to EVERY quest that has one, whatever its source. Unchecking High
+      // Rank therefore also removes High-rank Permits and Events — treating them as their
+      // own axis meant "High Rank off" left High Rank squares on the card. Ordinary
+      // Village/Hub/Pub quests have cat === rank, so this gate covers them too.
+      const rank = baseRank(q);
+      if (rank && !f.ranks.has(rank)) return false;
 
       if (q.LgMonster && !f.large) return false;
 
