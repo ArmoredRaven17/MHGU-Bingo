@@ -287,6 +287,13 @@
       const cat = questCategory(q);
       if ((cat === "SP" || cat === "Event" || cat === "Arena") && !f.ranks.has(cat)) return false;
 
+      // A handful of Arena quests (the XX Trials) hunt deviants. They stay filed under
+      // Arena — that's what they are — but deviants are permit content, so they answer to
+      // BOTH boxes. This is what makes "Special Permits" mean "allow deviants" rather than
+      // merely "allow permit quests": with it unchecked, no deviant reaches a card by any
+      // route. Redundant for cat === "SP", which the gate above already covered.
+      if (!f.ranks.has("SP") && (q.Monsters || []).some(m => DEVIANTS.has(m))) return false;
+
       // Rank: applies to EVERY quest that has one, whatever its source. Unchecking High
       // Rank therefore also removes High-rank Permits and Events — treating them as their
       // own axis meant "High Rank off" left High Rank squares on the card. Ordinary

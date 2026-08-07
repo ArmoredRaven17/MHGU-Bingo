@@ -84,6 +84,12 @@ The six checkboxes look like one list but are two:
 They AND together, so a *Permit · High Rank* square needs both Special Permits and High Rank
 ticked. Village / Hub / Pub have no source checkbox of their own — they're just the rank.
 
+**Deviants answer to Special Permits whatever quest supplies them.** 14 Arena "XX Trials"
+quests hunt deviants, so they need *both* Arena and Special Permits ticked. They stay filed
+under Arena because that's what they are; the extra gate is what makes Special Permits mean
+"allow deviants" rather than merely "allow permit quests", so unchecking it leaves no deviant
+reachable by any route.
+
 Treating these as a single axis was wrong twice over: unchecking High Rank left squares plainly
 reading "High Rank" on the card, and no amount of relabelling fixed the fact that the filter
 didn't do what its label says.
