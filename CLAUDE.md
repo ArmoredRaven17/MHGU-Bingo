@@ -104,6 +104,14 @@ G Rank's colour and an Event borrowed its underlying band's, so colour and filte
 The tint is stored on each cell and travels in the shared-card payload, so it's part of what
 the Worker mirror has to reproduce — a colour change is a generator change, not a CSS one.
 
+**Special Permits contribute only their deviant.** A permit quest often lists incidental
+targets alongside it — `Crystalbeard IV` is `["Crystalbeard Uragaan", "Uragaan"]` — and emitting
+a goal per monster produced squares like *Hunt Uragaan · Permit*, for a permit you cannot take.
+`DEVIANTS` filters them. Note the deviant is **not** reliably first (`Dreadqueen X` is
+`["Rathian", "Dreadqueen Rathian"]`), so "take the first monster" is not a valid shortcut, and
+the set holds full names because Furious Rajang and Savage Deviljho are rage forms rather than
+deviants and would pass a prefix test.
+
 Monster names come from the quests themselves, **not** `LgMonsters.json`. The two disagree in
 both directions: `White Fatalis` is listed but appears in zero quests, while `Silver Rathalos`,
 `Gold Rathian` and `Old Fatalis` appear in quests but aren't listed.

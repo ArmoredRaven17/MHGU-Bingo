@@ -316,6 +316,18 @@
   // "Hunt Rathalos" at Low and at High are separate squares and both are achievable. The
   // rank lives on the sub-line rather than in the text, which keeps every cell short.
   // Fixed emission order, so the goal list is identical here and in the Worker.
+  // The 18 deviants. A Special Permit is *about* its deviant; the other monsters on the
+  // quest are incidental targets you can't take a permit for, so they must not become
+  // goals. Deliberately full names rather than a prefix test: Furious Rajang and Savage
+  // Deviljho are rage forms, not deviants, and would slip through a looser check.
+  const DEVIANTS = new Set([
+    "Redhelm Arzuros", "Snowbaron Lagombi", "Stonefist Hermitaur", "Dreadqueen Rathian",
+    "Drilltusk Tetsucabra", "Silverwind Nargacuga", "Crystalbeard Uragaan",
+    "Deadeye Yian Garuga", "Dreadking Rathalos", "Thunderlord Zinogre", "Grimclaw Tigrex",
+    "Hellblade Glavenus", "Nightcloak Malfestio", "Rustrazor Ceanataur", "Soulseer Mizutsune",
+    "Boltreaver Astalos", "Elderfrost Gammoth", "Bloodbath Diablos",
+  ]);
+
   const RANK_ORDER = ["Low Rank", "High Rank", "G Rank",
     "Event · Low Rank", "Event · High Rank", "Event · G Rank",
     "Permit · Low Rank", "Permit · High Rank", "Permit · G Rank", ""];
@@ -324,7 +336,8 @@
     for (const q of pool) {
       if (!q.LgMonster) continue;
       const label = rankLabel(q), cat = questCategory(q);
-      const list = (q.Monsters && q.Monsters.length) ? q.Monsters : (q.Monster ? [q.Monster] : []);
+      const all = (q.Monsters && q.Monsters.length) ? q.Monsters : (q.Monster ? [q.Monster] : []);
+      const list = q.Type === "Special Permits" ? all.filter(m => DEVIANTS.has(m)) : all;
       for (const m of list) {
         if (!m) continue;
         if (!seen.has(m)) seen.set(m, new Map());
