@@ -56,6 +56,8 @@
           </label>
           <label class="chk"><input type="checkbox" id="freeSpace" checked>Free space in the centre</label>
           <p class="hint">Only odd sizes can have a free space.</p>
+          <label class="chk"><input type="checkbox" id="showReroll" checked>Reroll button on squares</label>
+          <p class="hint">Turn off if you keep hitting it by accident while marking.</p>
         </div>
       </section>
 
@@ -264,6 +266,17 @@
   </div>
 </div>
 
+<div id="confirmModal" class="modal hidden">
+  <div class="modal-card" style="width:min(340px,90vw)">
+    <h2 id="confirmTitle"></h2>
+    <p id="confirmBody"></p>
+    <div class="row end gap">
+      <button id="confirmCancel" class="btn">Cancel</button>
+      <button id="confirmOk" class="btn accent"></button>
+    </div>
+  </div>
+</div>
+
 <div id="twitchModal" class="modal hidden">
   <div class="modal-card">
     <h2>Twitch Bot</h2>
@@ -330,6 +343,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=15"></script>
+<script src="app.js?v=16"></script>
 </body>
 </html>

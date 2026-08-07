@@ -246,6 +246,10 @@
   let bags = {};               // leftover goals per category, for per-cell rerolls
   let usedKeys = new Set();
   let sharedView = false;      // viewing someone else's card via ?c=
+  // Display preference only. Deliberately NOT on cfg: seedBody and fingerprint read cfg,
+  // and decodeSeed rebuilds it wholesale, so a value parked there would either leak into
+  // the seed or be silently reset by loading one.
+  let showReroll = true;
 
   // Every key this app owns is namespaced mhgu-bingo-*. Nothing is shared with the other
   // MHGU apps, even though GitHub Pages puts them on one localStorage origin.
@@ -520,7 +524,7 @@
       txt.textContent = cell.text;      // user-authored text — never innerHTML
       el.appendChild(txt);
 
-      if (cell.cat !== "free" && cell.cat !== "empty" && !sharedView) {
+      if (cell.cat !== "free" && cell.cat !== "empty" && !sharedView && showReroll) {
         const rr = document.createElement("button");
         rr.type = "button";
         rr.className = "cell-reroll";
@@ -934,7 +938,7 @@
   }
 
   function saveSettings() {
-    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, cfg, filters: uiFilterState() })); } catch (e) {}
+    try { localStorage.setItem(SETTINGS_KEY, JSON.stringify({ v: 1, cfg, showReroll, filters: uiFilterState() })); } catch (e) {}
   }
   function savePool() {
     try { localStorage.setItem(POOL_KEY, JSON.stringify({ v: 1, entries: customPool })); } catch (e) {}
@@ -950,6 +954,8 @@
     let d = null;
     try { d = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "null"); } catch (e) {}
     if (!d) return;
+    showReroll = d.showReroll !== false;
+    $("showReroll").checked = showReroll;
     if (d.cfg && typeof d.cfg === "object") {
       cfg.size = [3, 4, 5].includes(d.cfg.size) ? d.cfg.size : 5;
       cfg.free = d.cfg.free !== false;
@@ -1357,6 +1363,30 @@
     }
   }
 
+  // ── Confirmation ───────────────────────────────────────────────────────────
+  // Only asked when there is something to lose. An unmarked card costs nothing to
+  // regenerate — and its seed is sitting in the title bar anyway — so confirming that
+  // would be pure friction. Marks are the part that can't be recovered.
+  let confirmFn = null;
+  function markedCount() {
+    if (!card) return 0;
+    return card.marked.size - (card.freeIdx >= 0 && card.marked.has(card.freeIdx) ? 1 : 0);
+  }
+  function guard(title, okLabel, fn) {
+    const n = markedCount();
+    if (!n) return fn();
+    $("confirmTitle").textContent = title;
+    $("confirmBody").textContent = "You've marked " + n + (n === 1 ? " square" : " squares")
+      + " on this card. That progress is lost — the squares themselves you can always get back from the seed.";
+    $("confirmOk").textContent = okLabel;
+    confirmFn = fn;
+    $("confirmModal").classList.remove("hidden");
+  }
+  function closeConfirm() {
+    $("confirmModal").classList.add("hidden");
+    confirmFn = null;
+  }
+
   // ── Wiring ─────────────────────────────────────────────────────────────────
   function wireModal(modalId, openId, closeId) {
     if (openId) $(openId).addEventListener("click", () => $(modalId).classList.remove("hidden"));
@@ -1379,6 +1409,8 @@
 
   function doReset() {
     cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
+    showReroll = true;
+    $("showReroll").checked = true;
     $("gridSize").value = String(cfg.size);
     for (const [id, on] of [["f_low", true], ["f_high", true], ["f_g", true], ["f_sp", true], ["f_event", true], ["f_arena", true],
                             ["f_keysOnly", false], ["f_large", true], ["f_hyper", true], ["f_capture", true],
@@ -1479,11 +1511,27 @@
     });
 
     // Cards
-    $("generateBtn").addEventListener("click", () => generate(newToken()));
-    $("newCardBtn").addEventListener("click", () => generate(newToken()));
+    const newCard = () => guard("Start a new card?", "New Card", () => generate(newToken()));
+    $("generateBtn").addEventListener("click", newCard);
+    $("newCardBtn").addEventListener("click", newCard);
     $("resetBtn").addEventListener("click", doReset);
-    $("seedApply").addEventListener("click", applySeed);
-    $("seedInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); applySeed(); } });
+    const loadSeed = () => guard("Load this seed?", "Load Seed", applySeed);
+    $("seedApply").addEventListener("click", loadSeed);
+    $("seedInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); loadSeed(); } });
+
+    $("confirmOk").addEventListener("click", () => {
+      const fn = confirmFn;
+      closeConfirm();
+      if (fn) fn();
+    });
+    $("confirmCancel").addEventListener("click", closeConfirm);
+    $("confirmModal").addEventListener("click", (e) => { if (e.target.id === "confirmModal") closeConfirm(); });
+
+    $("showReroll").addEventListener("change", () => {
+      showReroll = $("showReroll").checked;
+      saveSettings();
+      if (card) renderCard();
+    });
 
     $("seedCopy").addEventListener("click", () => {
       const btn = $("seedCopy");
