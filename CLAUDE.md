@@ -128,22 +128,27 @@ Randomizer repo under `worker/`. No OAuth and no settings page.
 | `GET /bingo-channel?channel=` | that card as JSON, for rendering `?channel=NAME` |
 | `POST /bingo-channel?channel=` | the app pushing the on-screen card to a channel |
 
-### Bot commands are keyed on the CHANNEL — never on a card id or a minted key
+### Bot commands are keyed on the CHANNEL, and contain nothing to edit
 
-**Nothing per-streamer may appear in a command URL.** Streamers will not re-copy commands
-whenever they make a new card, and they shouldn't have to: bots substitute the channel
-themselves (Nightbot's `$(channel)`), so the Nightbot form of every command is byte-identical
-for every streamer. Paste once, never touch again.
-
-Two earlier attempts were both wrong and shouldn't be revisited:
+Streamers will not re-copy a command whenever they make a new card, and they shouldn't have
+to. Three earlier attempts were all wrong and shouldn't be revisited:
 
 1. Baking the card's code into `!currentcard` — went stale on every new card.
 2. Making that code a permanent *slot* with a minted write key — better, but still meant
-   copying a unique URL after a setup step, and it broke on cleared storage, a second device,
-   or KV expiry.
+   copying a unique URL after a setup step, and broke on cleared storage, a second device, or
+   KV expiry.
+3. Emitting `?channel=$(channel)` and relying on the bot to substitute it — technically
+   correct and genuinely identical for everyone, but `$(channel)` **reads as a placeholder**.
+   People edit it, or stall wondering whether they're supposed to. A command that has to be
+   understood before it works is a command that gets set up wrong.
 
-Only the plain-URL form (Moobot and others with no variable to offer) carries the channel name
-literally, and that name never changes either.
+So the app learns the channel and emits **complete URLs with nothing left to substitute** —
+no `$(channel)`, no `YOUR_CHANNEL`, nothing that looks like a blank to fill in. A channel name
+is safe to bake in precisely because it never changes, which is what distinguishes it from the
+card ids and keys of attempts 1 and 2.
+
+The channel comes from Twitch login (see below) or, for anyone who'd rather not log in, a text
+field. Login wins when both are present.
 
 `!setcurrentcard` deliberately has **no secret**: a secret would have to live in the command's
 URL, which is the exact hardcoding this avoids. The bot's own moderator restriction is the
@@ -153,6 +158,21 @@ than a required one.
 
 Channel entries use a 365-day TTL, not the 30-day card TTL — a stream's commands must not
 expire mid-season.
+
+### Twitch login exists only to fill in the channel name
+
+Reuses the Worker's existing OAuth (`/auth/login?return=bingo`), the same flow the bot settings
+page and the Quest Randomizer use. `auth.js` keeps an allowlist, `RETURN_DESTINATIONS`, mapping
+a permitted `return` key to a constant URL — the redirect target is never built from the query
+value, so adding an app means adding a line there, never widening it to "redirect anywhere".
+The callback hands the session token back in the URL **fragment**, which is never sent to a
+server or put in a `Referer`.
+
+**Nothing is authorised by this login.** The bot endpoints take no credentials, because a chat
+bot has none to give; they're keyed on the channel and open by design. The token is decoded
+client-side purely to display and pre-fill a name, and `decodeTokenLogin` deliberately does not
+verify the signature because no decision rides on it. Don't mistake this for an auth boundary
+and start trusting it.
 
 ### A default-settings seed always reproduces
 

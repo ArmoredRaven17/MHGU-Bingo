@@ -197,9 +197,9 @@
       <li><code>!setcurrentcard</code> rolls a new card and makes it the stream's. Restrict it
           to moderators.</li>
     </ul>
-    <p class="hint">The commands key off your channel, which the bot fills in itself &mdash; so
-       there's nothing to set up or ever update. Paste them once and they keep working however
-       many cards you make.</p>
+    <p class="hint">Log in with Twitch and your channel is filled in for you, so the commands
+       come out complete &mdash; copy, paste, done, with nothing in them to edit. They keep
+       working however many cards you make.</p>
     <p class="hint">Cards rolled by the bot use the default pools and filters, which is why the
        seed it prints reproduces exactly for anyone opening this app fresh.</p>
 
@@ -268,12 +268,24 @@
        want the plain URL dropped into their own URL-fetch tag instead, not as the command
        itself. Both forms are listed below.</p>
 
-    <label class="field" style="margin-top:10px">Your Twitch channel
-      <input id="twitchChannel" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. armoredraven17">
-    </label>
-    <p class="hint">Only needed for the plain-URL versions. The Nightbot ones fill it in
-       themselves, so they're the same for everyone &mdash; paste once and never touch them
-       again.</p>
+    <div id="twitchLoggedOut">
+      <p class="hint" style="margin-top:10px">Log in and your channel is filled in for you, so the
+         commands below are complete and can be pasted exactly as they are &mdash; nothing in them
+         to edit.</p>
+      <div class="row gap">
+        <button id="twitchLogin" class="btn accent">Log in with Twitch</button>
+      </div>
+      <p class="hint" style="margin-top:10px">Or type it yourself:</p>
+      <label class="field">
+        <input id="twitchChannel" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. armoredraven17">
+      </label>
+    </div>
+
+    <div id="twitchLoggedIn" class="hidden">
+      <p class="hint" style="margin-top:10px">Logged in as <strong id="twitchLoginName"></strong>.
+         The commands below are filled in and ready to paste as-is.</p>
+      <div class="row gap"><button id="twitchLogout" class="btn tiny">Log out</button></div>
+    </div>
 
     <hr class="modal-divider">
 
@@ -312,6 +324,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=7"></script>
+<script src="app.js?v=8"></script>
 </body>
 </html>

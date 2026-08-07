@@ -1043,25 +1043,74 @@
   // The Twitch button is NOT a login — this app has no accounts. It opens a modal of
   // ready-to-paste bot URLs. !bingo needs nothing at all, so its command is always shown;
   // publishing is an explicit action because it's the only part that hits the network.
-  // Bots substitute the channel themselves, so the Nightbot form of every command is
-  // identical for every streamer — nothing to claim, copy or keep up to date. Only the
-  // plain-URL form (Moobot and friends, which have no variable to offer here) needs the
-  // channel spelled out, and that's a name that never changes either.
-  const NIGHTBOT_CHANNEL = "$(channel)";
+  // ── Twitch login ───────────────────────────────────────────────────────────
+  // Purely so the channel name can be filled in correctly. Nothing is authorised by it:
+  // the bot endpoints are keyed on the channel and take no credentials, because a chat bot
+  // has none to give. It exists because a command containing $(channel) reads like a
+  // placeholder — people edit it, or wonder whether they should — and a command that has
+  // to be understood before it works is a command that gets set up wrong.
+  const TOKEN_KEY = "mhgu-bingo-token";
+
+  // The session token is a self-contained signed {login,exp} string (see
+  // worker/src/session.js). Decoding the payload here is only ever for display — nothing
+  // trusts it, and there's no server-side decision riding on it in this app at all.
+  function decodeTokenLogin(token) {
+    try {
+      let b64 = token.split(".")[0].replace(/-/g, "+").replace(/_/g, "/");
+      while (b64.length % 4) b64 += "=";
+      const payload = JSON.parse(atob(b64));
+      if (payload.exp && payload.exp > Date.now()) return payload.login;
+    } catch (e) {}
+    return null;
+  }
+
+  function captureTokenFromHash() {
+    const m = location.hash.match(/(?:^#|&)mhgu_bot_token=([^&]+)/);
+    if (!m) return;
+    try { localStorage.setItem(TOKEN_KEY, decodeURIComponent(m[1])); } catch (e) {}
+    history.replaceState(null, "", location.pathname + location.search);
+  }
+
+  function loggedInChannel() {
+    let token = "";
+    try { token = localStorage.getItem(TOKEN_KEY) || ""; } catch (e) {}
+    return token ? decodeTokenLogin(token) : null;
+  }
+
+  const cleanChannel = (s) => String(s || "").trim().toLowerCase().replace(/^#/, "");
+
+  // A logged-in channel wins over the typed one; the text box is the fallback for anyone
+  // who'd rather not log in.
+  function activeChannel() {
+    return loggedInChannel() || cleanChannel($("twitchChannel").value);
+  }
 
   function renderTwitchCommands() {
-    const ch = ($("twitchChannel").value || "").trim().toLowerCase().replace(/^#/, "");
-    const plainCh = ch || "YOUR_CHANNEL";
+    const login = loggedInChannel();
+    $("twitchLoggedOut").classList.toggle("hidden", !!login);
+    $("twitchLoggedIn").classList.toggle("hidden", !login);
+    if (login) $("twitchLoginName").textContent = login;
+
+    const ch = activeChannel();
 
     $("bingoCmdRow").textContent = "";
     addCommandPair($("bingoCmdRow"), BOT_API_ORIGIN + "/bingo");
 
+    // Once the channel is known, both forms are complete URLs with nothing left to
+    // substitute — no $(channel), no placeholder, nothing for anyone to misread as an
+    // instruction to edit.
     for (const [host, path] of [["currentCardRow", "/bingo-link"], ["setCardRow", "/bingo-set"]]) {
       const el = $(host);
       el.textContent = "";
-      addCommandPair(el, BOT_API_ORIGIN + path + "?channel=", NIGHTBOT_CHANNEL, plainCh);
+      if (ch) addCommandPair(el, BOT_API_ORIGIN + path + "?channel=" + ch);
+      else {
+        const p = document.createElement("p");
+        p.className = "hint";
+        p.textContent = "Log in above (or type your channel) and the command appears here, ready to paste.";
+        el.appendChild(p);
+      }
     }
-    resetPublishArea(ch ? "Send this card to #" + ch : "Enter your channel above first", !ch);
+    resetPublishArea(ch ? "Send this card to #" + ch : "Log in or enter your channel first", !ch);
   }
 
   function openTwitchModal() {
@@ -1086,7 +1135,7 @@
   // Pushes the card on screen to the channel, so !currentcard shows it. Keyed on the
   // channel name only — there is no per-card id or minted key anywhere in this flow.
   async function publishCard() {
-    const ch = ($("twitchChannel").value || "").trim().toLowerCase().replace(/^#/, "");
+    const ch = activeChannel();
     if (!card || !ch) return;
     const body = $("publishArea");
     body.textContent = "";
@@ -1135,7 +1184,7 @@
   // Moobot users down a dead end, so show both — same as the Quest Randomizer's bot modal.
   // `nightbotSuffix`/`plainSuffix` differ only where a bot can fill the channel in for
   // itself: Nightbot gets $(channel), the plain URL gets the literal name.
-  function addCommandPair(host, url, nightbotSuffix, plainSuffix) {
+  function addCommandPair(host, url) {
     const label = (text) => {
       const p = document.createElement("p");
       p.className = "cmd-desc";
@@ -1143,9 +1192,9 @@
       host.appendChild(p);
     };
     label("Nightbot");
-    addCopyRow(host, "Nightbot command", "$(urlfetch " + url + (nightbotSuffix || "") + ")");
+    addCopyRow(host, "Nightbot command", "$(urlfetch " + url + ")");
     label("Moobot / plain URL");
-    addCopyRow(host, "plain URL", url + (plainSuffix || ""));
+    addCopyRow(host, "plain URL", url);
   }
 
   function addCopyRow(host, label, value) {
@@ -1357,6 +1406,10 @@
   }
 
   function boot() {
+    // Must run before anything reads the URL, so the token is stashed and the fragment
+    // scrubbed before the ?c= / ?channel= routing below looks at location.
+    captureTokenFromHash();
+
     // Panels behave as an accordion, like the Quest Randomizer's sidebar.
     document.querySelectorAll(".panel-head").forEach(h => {
       h.addEventListener("click", () => {
@@ -1458,8 +1511,15 @@
 
     $("twitchBtn").addEventListener("click", openTwitchModal);
     $("twitchChannel").addEventListener("input", () => {
-      const ch = ($("twitchChannel").value || "").trim().toLowerCase().replace(/^#/, "");
-      try { localStorage.setItem(CHANNEL_KEY, ch); } catch (e) {}
+      try { localStorage.setItem(CHANNEL_KEY, cleanChannel($("twitchChannel").value)); } catch (e) {}
+      renderTwitchCommands();
+    });
+    // ?return=bingo brings the callback back here with the token in the URL fragment.
+    $("twitchLogin").addEventListener("click", () => {
+      location.href = BOT_API_ORIGIN + "/auth/login?return=bingo";
+    });
+    $("twitchLogout").addEventListener("click", () => {
+      try { localStorage.removeItem(TOKEN_KEY); } catch (e) {}
       renderTwitchCommands();
     });
 

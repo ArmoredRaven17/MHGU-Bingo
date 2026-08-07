@@ -39,9 +39,10 @@ when captures are filtered out.
   - `!currentcard` links the stream's current card so chat can follow along.
   - `!setcurrentcard` rolls a fresh card and makes it the stream's. Restrict it to mods.
 
-  The commands key off your channel, which the bot fills in itself — so the Nightbot versions
-  are the same for everyone, and there's nothing to set up, claim or ever update. Paste them
-  once and they keep working no matter how many cards you make.
+  Log in with Twitch and your channel is filled in automatically, so the commands come out
+  complete — copy, paste, done, with nothing in them to edit. (You can type your channel by
+  hand instead if you'd rather not log in.) They keep working no matter how many cards you
+  make; there's nothing to update later.
 
 ## Filters
 
