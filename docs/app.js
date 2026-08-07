@@ -211,7 +211,7 @@
       "W" + f.weapons.slice().sort().join("."),
       "S" + f.styles.slice().sort().join(".") ,
       "P" + f.biases.slice().sort().join("."),
-      "F" + ["large","keysOnly","hyper","capture","egg","gathering","small","multi","oneFaint","onSite","pQuests"]
+      "F" + ["large","hyper","capture","egg","gathering","small","multi","oneFaint","onSite","pQuests"]
         .map(k => f[k] ? 1 : 0).join(""),
       "C" + pool.filter(c => c.checked).map(c => c.text + "@" + c.weight).sort().join("."),
     ].join("|");
@@ -283,7 +283,6 @@
       if (!f.ranks.has(questCategory(q))) return false;
 
       if (q.LgMonster && !f.large) return false;
-      if (f.keysOnly && !q.Key) return false;
 
       const include = (q.LgMonster && !q.Capture)
         || (q.Capture && f.capture)
@@ -467,7 +466,7 @@
   // reproducible here (see applySeed).
   function defaultFilters() {
     return {
-      large: true, keysOnly: false, hyper: true, capture: true, egg: true, gathering: true,
+      large: true, hyper: true, capture: true, egg: true, gathering: true,
       small: true, multi: true, oneFaint: true, onSite: true, pQuests: false,
       ranks: new Set(ALL_RANKS),
       includedMonsters: new Set(DATA.monsters.map(m => m.MonsterName.toLowerCase())),
@@ -703,7 +702,7 @@
     const biases = [];
     document.querySelectorAll("#biasList input:checked").forEach(cb => biases.push(cb.dataset.name));
     return {
-      large: $("f_large").checked, keysOnly: $("f_keysOnly").checked,
+      large: $("f_large").checked,
       hyper: $("f_hyper").checked, capture: $("f_capture").checked,
       egg: $("f_egg").checked, gathering: $("f_gathering").checked,
       small: $("f_small").checked, multi: $("f_multi").checked,
@@ -956,7 +955,7 @@
     };
     return {
       flags: ["f_low","f_high","f_g","f_sp","f_event","f_arena",
-              "f_large","f_keysOnly","f_hyper","f_capture","f_egg","f_gathering","f_small","f_multi","f_oneFaint","f_onSite","f_prowler"]
+              "f_large","f_hyper","f_capture","f_egg","f_gathering","f_small","f_multi","f_oneFaint","f_onSite","f_prowler"]
         .reduce((a, id) => (a[id] = $(id).checked, a), {}),
       offMonsters: off("#monsterTree input.mon"),
       offWeapons: off("#weaponList input"),
@@ -1478,7 +1477,7 @@
     $("previewMin").value = "5";
     $("gridSize").value = String(cfg.size);
     for (const [id, on] of [["f_low", true], ["f_high", true], ["f_g", true], ["f_sp", true], ["f_event", true], ["f_arena", true],
-                            ["f_keysOnly", false], ["f_large", true], ["f_hyper", true], ["f_capture", true],
+                            ["f_large", true], ["f_hyper", true], ["f_capture", true],
                             ["f_egg", true], ["f_gathering", true], ["f_small", true], ["f_multi", true],
                             ["f_oneFaint", true], ["f_onSite", true], ["f_prowler", false]]) $(id).checked = on;
     document.querySelectorAll("#monsterTree input, #weaponList input, #styleList input, #biasList input").forEach(cb => { cb.checked = true; cb.indeterminate = false; });
@@ -1528,7 +1527,7 @@
       cfg.free = $("freeSpace").checked; saveSettings(); refreshCounts();
     });
     document.querySelectorAll("#f_low,#f_high,#f_g,#f_sp,#f_event,#f_arena,"
-      + "#f_large,#f_keysOnly,#f_hyper,#f_capture,#f_egg,#f_gathering,#f_small,#f_multi,#f_oneFaint,#f_onSite,#f_prowler")
+      + "#f_large,#f_hyper,#f_capture,#f_egg,#f_gathering,#f_small,#f_multi,#f_oneFaint,#f_onSite,#f_prowler")
       .forEach(cb => cb.addEventListener("change", onFilterChange));
 
     $("monAll").addEventListener("click", () => { document.querySelectorAll("#monsterTree input").forEach(cb => { cb.checked = true; cb.indeterminate = false; }); onFilterChange(); });
