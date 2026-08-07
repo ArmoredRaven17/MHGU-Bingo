@@ -192,11 +192,14 @@
     <ul>
       <li><code>!bingo</code> rolls a brand-new card for whoever runs it and prints the seed
           alongside the link. It works on its own, with nothing published first.</li>
-      <li><code>!currentcard</code> points at the stream's card, for when chat should follow
-          along with yours. Publish once and the link is permanent.</li>
-      <li><code>!setcurrentcard</code> rolls a new card straight into that link. Restrict it to
-          moderators &mdash; it carries a key.</li>
+      <li><code>!currentcard</code> points at the stream's current card, for when chat should
+          follow along with yours.</li>
+      <li><code>!setcurrentcard</code> rolls a new card and makes it the stream's. Restrict it
+          to moderators.</li>
     </ul>
+    <p class="hint">The commands key off your channel, which the bot fills in itself &mdash; so
+       there's nothing to set up or ever update. Paste them once and they keep working however
+       many cards you make.</p>
     <p class="hint">Cards rolled by the bot use the default pools and filters, which is why the
        seed it prints reproduces exactly for anyone opening this app fresh.</p>
 
@@ -265,6 +268,13 @@
        want the plain URL dropped into their own URL-fetch tag instead, not as the command
        itself. Both forms are listed below.</p>
 
+    <label class="field" style="margin-top:10px">Your Twitch channel
+      <input id="twitchChannel" type="text" spellcheck="false" autocomplete="off" placeholder="e.g. armoredraven17">
+    </label>
+    <p class="hint">Only needed for the plain-URL versions. The Nightbot ones fill it in
+       themselves, so they're the same for everyone &mdash; paste once and never touch them
+       again.</p>
+
     <hr class="modal-divider">
 
     <h3>!bingo &mdash; a fresh card for whoever asks</h3>
@@ -276,19 +286,24 @@
     <hr class="modal-divider">
 
     <h3>!currentcard &mdash; the card the stream is playing</h3>
-    <p class="hint">Points chat at the stream's card so they can follow along. Publish once to
-       claim a permanent link &mdash; after that the URL never changes, however many new cards
-       you make.</p>
-    <div id="publishArea"></div>
+    <p class="hint">Points chat at your stream's current card so they can follow along.</p>
+    <div id="currentCardRow"></div>
 
-    <div id="setCardSection" class="hidden">
-      <hr class="modal-divider">
-      <h3>!setcurrentcard &mdash; roll a new one for the stream</h3>
-      <p class="hint"><strong>Restrict this one to moderators.</strong> It carries a key, and
-       anyone who can read the command can reroll your card. Running it rolls a fresh board
-       straight into the link above, so <code>!currentcard</code> keeps working untouched.</p>
-      <div id="setCardRow"></div>
-    </div>
+    <hr class="modal-divider">
+
+    <h3>!setcurrentcard &mdash; roll a new one for the stream</h3>
+    <p class="hint">Rolls a fresh board and makes it the stream's card, so
+       <code>!currentcard</code> immediately points at the new one.
+       <strong>Restrict this to moderators</strong> &mdash; there's no secret in the URL, so the
+       bot's own permissions are what stop a viewer rerolling your card.</p>
+    <div id="setCardRow"></div>
+
+    <hr class="modal-divider">
+
+    <h3>Put the card on screen up for chat</h3>
+    <p class="hint">Sends the board currently on screen to your channel, for when you've built
+       one with your own custom pool rather than rolling from chat.</p>
+    <div id="publishArea"></div>
 
     <div class="row end gap" style="margin-top:14px">
       <button id="twitchClose" class="btn">Close</button>
@@ -297,6 +312,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=6"></script>
+<script src="app.js?v=7"></script>
 </body>
 </html>

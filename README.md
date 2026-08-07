@@ -36,9 +36,12 @@ when captures are filtered out.
 - **Twitch** — three commands, ready to paste from the Twitch button in the app, in both
   Nightbot and plain-URL form:
   - `!bingo` rolls a card for whoever runs it, printing a link and the seed.
-  - `!currentcard` links the stream's card so chat can follow along. Publish once and the URL
-    is permanent — new cards never break it.
-  - `!setcurrentcard` rolls a fresh card into that link. Mods only; it carries a key.
+  - `!currentcard` links the stream's current card so chat can follow along.
+  - `!setcurrentcard` rolls a fresh card and makes it the stream's. Restrict it to mods.
+
+  The commands key off your channel, which the bot fills in itself — so the Nightbot versions
+  are the same for everyone, and there's nothing to set up, claim or ever update. Paste them
+  once and they keep working no matter how many cards you make.
 
 ## Filters
 

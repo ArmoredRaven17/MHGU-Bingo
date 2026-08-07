@@ -249,7 +249,7 @@
   const SETTINGS_KEY = "mhgu-bingo-settings";
   const POOL_KEY     = "mhgu-bingo-pool";
   const CARD_KEY     = "mhgu-bingo-card";
-  const SHARE_KEY    = "mhgu-bingo-share";
+  const CHANNEL_KEY  = "mhgu-bingo-channel";
   const THEME_KEY    = "mhgu-bingo-theme";
 
   // ── Quest pool ─────────────────────────────────────────────────────────────
@@ -1043,42 +1043,56 @@
   // The Twitch button is NOT a login — this app has no accounts. It opens a modal of
   // ready-to-paste bot URLs. !bingo needs nothing at all, so its command is always shown;
   // publishing is an explicit action because it's the only part that hits the network.
+  // Bots substitute the channel themselves, so the Nightbot form of every command is
+  // identical for every streamer — nothing to claim, copy or keep up to date. Only the
+  // plain-URL form (Moobot and friends, which have no variable to offer here) needs the
+  // channel spelled out, and that's a name that never changes either.
+  const NIGHTBOT_CHANNEL = "$(channel)";
+
+  function renderTwitchCommands() {
+    const ch = ($("twitchChannel").value || "").trim().toLowerCase().replace(/^#/, "");
+    const plainCh = ch || "YOUR_CHANNEL";
+
+    $("bingoCmdRow").textContent = "";
+    addCommandPair($("bingoCmdRow"), BOT_API_ORIGIN + "/bingo");
+
+    for (const [host, path] of [["currentCardRow", "/bingo-link"], ["setCardRow", "/bingo-set"]]) {
+      const el = $(host);
+      el.textContent = "";
+      addCommandPair(el, BOT_API_ORIGIN + path + "?channel=", NIGHTBOT_CHANNEL, plainCh);
+    }
+    resetPublishArea(ch ? "Send this card to #" + ch : "Enter your channel above first", !ch);
+  }
+
   function openTwitchModal() {
-    const cmd = $("bingoCmdRow");
-    cmd.textContent = "";
-    addCommandPair(cmd, BOT_API_ORIGIN + "/bingo");
-
-    // generate() clears the stored code, so a code present here always refers to the card
-    // currently on screen.
-    let stored = null;
-    try { stored = JSON.parse(localStorage.getItem(SHARE_KEY) || "null"); } catch (e) {}
-    if (stored && stored.code) showPublished(stored.code, stored.key);
-    else { resetPublishArea(); $("setCardSection").classList.add("hidden"); }
-
+    let ch = "";
+    try { ch = localStorage.getItem(CHANNEL_KEY) || ""; } catch (e) {}
+    $("twitchChannel").value = ch;
+    renderTwitchCommands();
     $("twitchModal").classList.remove("hidden");
   }
 
-  function resetPublishArea(label) {
+  function resetPublishArea(label, disabled) {
     const area = $("publishArea");
     area.textContent = "";
     const btn = document.createElement("button");
     btn.className = "btn";
-    btn.textContent = label || "Publish this card";
+    btn.textContent = label || "Send this card to your channel";
+    btn.disabled = !!disabled;
     btn.addEventListener("click", publishCard);
     area.appendChild(btn);
-    $("setCardSection").classList.add("hidden");
   }
 
+  // Pushes the card on screen to the channel, so !currentcard shows it. Keyed on the
+  // channel name only — there is no per-card id or minted key anywhere in this flow.
   async function publishCard() {
-    if (!card) return;
+    const ch = ($("twitchChannel").value || "").trim().toLowerCase().replace(/^#/, "");
+    if (!card || !ch) return;
     const body = $("publishArea");
     body.textContent = "";
     const p = document.createElement("p");
-    p.textContent = "Publishing…";
+    p.textContent = "Sending…";
     body.appendChild(p);
-
-    let stored = null;
-    try { stored = JSON.parse(localStorage.getItem(SHARE_KEY) || "null"); } catch (e) {}
 
     const payload = {
       seed: card.seed,
@@ -1087,59 +1101,41 @@
       cells: card.cells.map(c => ({ cat: c.cat, key: c.key, text: c.text, sub: c.sub || "", icon: c.icon || "", tint: c.tint || "" })),
     };
     try {
-      const headers = { "Content-Type": "application/json" };
-      if (stored && stored.code && stored.key) headers["Authorization"] = "Bearer " + stored.key;
-      const res = await fetch(BOT_API_ORIGIN + "/bingo" + (stored && stored.code ? "/" + stored.code : ""), {
-        method: "POST", headers, body: JSON.stringify(payload),
+      const res = await fetch(BOT_API_ORIGIN + "/bingo-channel?channel=" + encodeURIComponent(ch), {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
       });
       if (!res.ok) throw new Error("HTTP " + res.status);
-      const out = await res.json();
-      const key = out.key || (stored && stored.key);
-      try { localStorage.setItem(SHARE_KEY, JSON.stringify({ code: out.code, key })); } catch (e) {}
-      showPublished(out.code, key);
+      body.textContent = "";
+      addCopyRow(body, "Link", location.origin + location.pathname + "?channel=" + ch);
+      const ok = document.createElement("p");
+      ok.className = "hint";
+      ok.textContent = "Sent — !currentcard now points at this board.";
+      body.appendChild(ok);
+      const again = document.createElement("button");
+      again.className = "btn tiny";
+      again.textContent = "Send again after changes";
+      again.addEventListener("click", publishCard);
+      body.appendChild(again);
     } catch (e) {
       body.textContent = "";
       const err = document.createElement("p");
       err.className = "hint";
-      err.textContent = "Couldn't reach the bot API, so this card isn't published. !bingo above still works — it doesn't need anything from this app.";
+      err.textContent = "Couldn't reach the bot API, so the channel's card is unchanged. The commands above are unaffected — they don't depend on this app.";
       body.appendChild(err);
-      resetPublishArea("Try again");
-      // resetPublishArea wipes the area, so put the explanation back above the button.
-      body.insertBefore(err, body.firstChild);
-    }
-  }
-
-  function showPublished(code, key) {
-    const body = $("publishArea");
-    body.textContent = "";
-    addCopyRow(body, "Link", location.origin + location.pathname + "?c=" + code);
-    addCommandPair(body, BOT_API_ORIGIN + "/bingo-link?c=" + code);
-    const p = document.createElement("p");
-    p.className = "hint";
-    p.textContent = "This link carries the exact card, custom squares and all — unlike the seed, which only rebuilds it for someone on the default pools and filters.";
-    body.appendChild(p);
-    const again = document.createElement("button");
-    again.className = "btn tiny";
-    again.textContent = "Put the card on screen here";
-    again.title = "Copy the card currently on screen into this link";
-    again.addEventListener("click", publishCard);
-    body.appendChild(again);
-
-    // !setcurrentcard needs the write key, so it only appears once we hold one.
-    const sec = $("setCardSection"), row = $("setCardRow");
-    if (key) {
-      row.textContent = "";
-      addCommandPair(row, BOT_API_ORIGIN + "/bingo-set?c=" + code + "&key=" + key);
-      sec.classList.remove("hidden");
-    } else {
-      sec.classList.add("hidden");
+      const retry = document.createElement("button");
+      retry.className = "btn";
+      retry.textContent = "Try again";
+      retry.addEventListener("click", publishCard);
+      body.appendChild(retry);
     }
   }
 
   // Nightbot pastes the whole $(urlfetch ...) line in as the command; Moobot and most
   // others need the bare URL in their own fetch tag. Listing only the Nightbot form sends
   // Moobot users down a dead end, so show both — same as the Quest Randomizer's bot modal.
-  function addCommandPair(host, url) {
+  // `nightbotSuffix`/`plainSuffix` differ only where a bot can fill the channel in for
+  // itself: Nightbot gets $(channel), the plain URL gets the literal name.
+  function addCommandPair(host, url, nightbotSuffix, plainSuffix) {
     const label = (text) => {
       const p = document.createElement("p");
       p.className = "cmd-desc";
@@ -1147,9 +1143,9 @@
       host.appendChild(p);
     };
     label("Nightbot");
-    addCopyRow(host, "Nightbot command", "$(urlfetch " + url + ")");
+    addCopyRow(host, "Nightbot command", "$(urlfetch " + url + (nightbotSuffix || "") + ")");
     label("Moobot / plain URL");
-    addCopyRow(host, "plain URL", url);
+    addCopyRow(host, "plain URL", url + (plainSuffix || ""));
   }
 
   function addCopyRow(host, label, value) {
@@ -1171,9 +1167,13 @@
     host.appendChild(row);
   }
 
-  async function loadSharedCard(code) {
+  // Two ways to arrive at someone else's board: ?c=CODE for a one-off card rolled by
+  // !bingo, or ?channel=NAME for whatever a stream is currently playing.
+  async function loadSharedCard(code, channel) {
     try {
-      const res = await fetch(BOT_API_ORIGIN + "/bingo/" + encodeURIComponent(code));
+      const res = await fetch(channel
+        ? BOT_API_ORIGIN + "/bingo-channel?channel=" + encodeURIComponent(channel)
+        : BOT_API_ORIGIN + "/bingo/" + encodeURIComponent(code));
       if (!res.ok) throw new Error("HTTP " + res.status);
       const d = await res.json();
       if (!d || !Array.isArray(d.cells)) throw new Error("bad payload");
@@ -1457,6 +1457,11 @@
     });
 
     $("twitchBtn").addEventListener("click", openTwitchModal);
+    $("twitchChannel").addEventListener("input", () => {
+      const ch = ($("twitchChannel").value || "").trim().toLowerCase().replace(/^#/, "");
+      try { localStorage.setItem(CHANNEL_KEY, ch); } catch (e) {}
+      renderTwitchCommands();
+    });
 
     wireModal("helpModal", "helpBtn", "helpClose");
     wireModal("themeModal", "themeBtn", "themeClose");
@@ -1465,11 +1470,18 @@
     wireModal("twitchModal", null, "twitchClose");
 
     // A shared link wins over whatever card is stored locally.
-    const code = new URLSearchParams(location.search).get("c");
+    const params = new URLSearchParams(location.search);
+    const code = params.get("c");
+    const channel = params.get("channel");
     refreshCounts();
-    if (code) {
-      loadSharedCard(code).then(ok => {
-        if (!ok) { flash($("status"), "That shared card couldn't be found."); startLocal(); }
+    if (code || channel) {
+      loadSharedCard(code, channel).then(ok => {
+        if (!ok) {
+          flash($("status"), channel
+            ? "That stream hasn't set a bingo card yet."
+            : "That shared card couldn't be found.");
+          startLocal();
+        }
       });
     } else {
       startLocal();

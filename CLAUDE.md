@@ -123,20 +123,36 @@ Randomizer repo under `worker/`. No OAuth and no settings page.
 | `GET /bingo/:code` | the stored card as JSON, for this app to render `?c=CODE` |
 | `POST /bingo` | this app publishing its own card; mints a code + write key |
 | `POST /bingo/:code` | overwrite, requires `Authorization: Bearer <writeKey>` |
-| `GET /bingo-link?c=` | **`!currentcard`** — plain-text link to the stream's slot |
-| `GET /bingo-set?c=&key=` | **`!setcurrentcard`** — rolls a fresh card *into* that slot (mods only) |
+| `GET /bingo-link?channel=` | **`!currentcard`** — plain-text link to the stream's current card |
+| `GET /bingo-set?channel=` | **`!setcurrentcard`** — rolls a fresh card and makes it the stream's (mods only) |
+| `GET /bingo-channel?channel=` | that card as JSON, for rendering `?channel=NAME` |
+| `POST /bingo-channel?channel=` | the app pushing the on-screen card to a channel |
 
-### The published code is a permanent slot, not a per-card id
+### Bot commands are keyed on the CHANNEL — never on a card id or a minted key
 
-A card code baked into a bot command goes stale the moment a new card is made, which is why
-`generate()` deliberately does **not** clear `mhgu-bingo-share`. The first publish claims a code
-plus a write key, and everything afterwards overwrites that same code: the app's publish button
-copies the on-screen card into it, and `!setcurrentcard` rolls a new one into it server-side.
-`!currentcard`'s URL is therefore fixed forever. Don't "tidy up" by clearing the code on a new
-card — that reintroduces the bug.
+**Nothing per-streamer may appear in a command URL.** Streamers will not re-copy commands
+whenever they make a new card, and they shouldn't have to: bots substitute the channel
+themselves (Nightbot's `$(channel)`), so the Nightbot form of every command is byte-identical
+for every streamer. Paste once, never touch again.
 
-The key rides in the `!setcurrentcard` URL, so that command must be mod-restricted in the bot.
-Bot-rolled cards store an empty `keyHash` and can never be claimed as a slot.
+Two earlier attempts were both wrong and shouldn't be revisited:
+
+1. Baking the card's code into `!currentcard` — went stale on every new card.
+2. Making that code a permanent *slot* with a minted write key — better, but still meant
+   copying a unique URL after a setup step, and it broke on cleared storage, a second device,
+   or KV expiry.
+
+Only the plain-URL form (Moobot and others with no variable to offer) carries the channel name
+literally, and that name never changes either.
+
+`!setcurrentcard` deliberately has **no secret**: a secret would have to live in the command's
+URL, which is the exact hardcoding this avoids. The bot's own moderator restriction is the
+control. The worst case is a stranger rerolling a stream's bingo card, which a mod undoes by
+running the command again. If that ever becomes a real problem, add an *optional* key rather
+than a required one.
+
+Channel entries use a 365-day TTL, not the 30-day card TTL — a stream's commands must not
+expire mid-season.
 
 ### A default-settings seed always reproduces
 
