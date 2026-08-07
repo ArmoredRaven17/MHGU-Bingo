@@ -79,11 +79,14 @@ Village / Hub / Pub are just delivery mechanisms for a rank, so the filters are 
 G, Special Permits, Events, Arena** rather than the Randomizer's quest-type dropdown plus a
 level range. `questCategory()` is that filter axis.
 
-`rankLabel()` is separate, and is what a square's sub-line shows. The two deliberately differ:
-a Special Permit filters under **SP** but still displays *High Rank* or *G Rank*, because that's
-the hunt you actually go and do. Events filter under **Event** and display *Event · High Rank* —
-they span Low/High/G like anything else, but finding the Event version is a different job, so
-the label says so. Arena has no rank band and shows no sub-line.
+`rankLabel()` is separate, and is what a square's sub-line shows. Anything filtered on its own
+axis is **prefixed** — *Event · High Rank*, *Permit · G Rank* — so a bare *Low/High/G Rank* only
+ever comes from the Low/High/G checkboxes. Arena has no rank band and shows no sub-line.
+
+That prefix isn't decoration. Special Permits originally displayed a plain *High Rank* while
+filtering under SP, so unchecking High Rank left squares reading "High Rank" on the card and the
+filter looked broken — 120 Special Permits carry a High base rank. If another category is ever
+added on its own axis, prefix its label too.
 
 `baseRank()` is the third piece: the plain Low/High/G used for the cell colour, so an Event
 square is still tinted by its real difficulty.

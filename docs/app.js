@@ -107,10 +107,16 @@
 
   // What the sub-line on a monster square reads. Events keep their rank but say so, since
   // "Hunt Rathalos / High Rank" and the Event version are different hunts to go and find.
+  // Anything filtered on its own axis says so, so a bare "High Rank" only ever comes from
+  // the Low/High/G checkboxes. Without the Permit prefix, unchecking High Rank still left
+  // squares reading "High Rank" on the card — Special Permits pass the SP filter but 120
+  // of them carry a High base rank, so it looked like the filter was broken.
   function rankLabel(q) {
     const r = baseRank(q);
     if (!r) return "";
-    return (q.Type === "Events" ? "Event · " : "") + r + " Rank";
+    const prefix = q.Type === "Events" ? "Event · "
+      : q.Type === "Special Permits" ? "Permit · " : "";
+    return prefix + r + " Rank";
   }
 
   // What the quest filters switch on. Village / Hub / Pub / Events are just delivery
@@ -304,7 +310,8 @@
   // rank lives on the sub-line rather than in the text, which keeps every cell short.
   // Fixed emission order, so the goal list is identical here and in the Worker.
   const RANK_ORDER = ["Low Rank", "High Rank", "G Rank",
-    "Event · Low Rank", "Event · High Rank", "Event · G Rank", ""];
+    "Event · Low Rank", "Event · High Rank", "Event · G Rank",
+    "Permit · Low Rank", "Permit · High Rank", "Permit · G Rank", ""];
   function monsterGoals(pool) {
     const seen = new Map();   // monster -> Map(sub-line label -> base rank, for the colour)
     for (const q of pool) {
