@@ -211,7 +211,8 @@
       "W" + f.weapons.slice().sort().join("."),
       "S" + f.styles.slice().sort().join(".") ,
       "P" + f.biases.slice().sort().join("."),
-      "F" + ["large","hyper","capture","egg","gathering","small","multi","oneFaint","onSite","pQuests"]
+      "F" + ["large","hyper","capture","egg","gathering","small","multi","oneFaint","onSite",
+             "pQuests","prowler"]
         .map(k => f[k] ? 1 : 0).join(""),
       "C" + pool.filter(c => c.checked).map(c => c.text + "@" + c.weight).sort().join("."),
     ].join("|");
@@ -240,6 +241,9 @@
 
   // ── State ──────────────────────────────────────────────────────────────────
   const DEFAULT_CFG = { size: 5, free: true, cats: { monster: 4, weapon: 3, objective: 2, custom: 3 } };
+  // Must match the #gridSize options and the Worker's SIZES, or a saved size is silently
+  // snapped back to 5 on reload.
+  const SIZES = [3, 4, 5, 6, 7, 8, 9, 10];
   const DEFAULT_POOL = [
     "Get carted by a large monster",
     "Moxie saved you, then you died anyway",
@@ -393,8 +397,10 @@
         }
       }
     }
-    // Prowler goals only make sense if Prowler quests are in the pool at all.
-    if (f.pQuests && pool.some(q => q.Prowler)) {
+    // Gated on "Include Prowler", NOT on Prowler-only quests being in the pool: a Prowler
+    // can be taken on virtually any quest, so these squares are achievable whatever else
+    // the pool holds. The two are separate controls for exactly that reason.
+    if (f.prowler) {
       // One square per enabled bias, in BIASES order so the list is identical here and in
       // the Worker.
       for (const [name, file] of BIASES) {
@@ -417,14 +423,16 @@
     { id:"sp",       text:"Clear a Special Permit",        icon:"", ok:p => p.some(q => q.Type === "Special Permits") },
     { id:"arena",    text:"Clear an Arena quest",          icon:"", ok:p => p.some(q => q.Type === "Arena") },
     { id:"event",    text:"Clear an Event quest",          icon:"", ok:p => p.some(q => q.Type === "Events") },
-    { id:"prowler",  text:"Clear a quest as a Prowler",    icon:"", ok:p => p.some(q => q.Prowler) },
+    // Answers to the Prowler toggle rather than the pool: any quest counts, so what makes
+    // this reachable is being allowed to play one at all.
+    { id:"prowler",  text:"Clear a quest as a Prowler",    icon:"", ok:(p, f) => f.prowler },
     { id:"onefaint", text:"Clear a One-Faint quest",       icon:"", ok:p => p.some(q => q.OneFaint) },
     { id:"onsite",   text:"Clear an On-Site Items quest",  icon:"", ok:p => p.some(q => q.OnSite) },
     { id:"multi",    text:"Clear a Multi-Monster quest",   icon:"", ok:p => p.some(q => q.Monsters && q.Monsters.length > 1) },
     { id:"nofaint",  text:"Clear a quest without fainting",icon:"", ok:() => true },
   ];
-  function objectiveGoals(pool) {
-    return OBJECTIVES.filter(o => o.ok(pool))
+  function objectiveGoals(pool, f) {
+    return OBJECTIVES.filter(o => o.ok(pool, f))
       .map(o => ({ key: "o:" + o.id, cat: "objective", text: o.text, sub: "", icon: o.icon, tint: POOL_COLORS.objective }));
   }
 
@@ -440,7 +448,7 @@
   const CATS = [
     { id:"monster",   label:"Monsters",   items:(pool)        => monsterGoals(pool) },
     { id:"weapon",    label:"Weapons",    items:(pool, f)     => weaponGoals(pool, f) },
-    { id:"objective", label:"Objectives", items:(pool)        => objectiveGoals(pool) },
+    { id:"objective", label:"Objectives", items:(pool, f)     => objectiveGoals(pool, f) },
     { id:"custom",    label:"Custom",     items:(pool, f, cp) => customGoals(cp) },
   ];
 
@@ -486,7 +494,8 @@
   function defaultFilters() {
     return {
       large: true, hyper: true, capture: true, egg: true, gathering: true,
-      small: true, multi: true, oneFaint: true, onSite: true, pQuests: false,
+      small: true, multi: true, oneFaint: true, onSite: true,
+      pQuests: false, prowler: false,
       ranks: new Set(ALL_RANKS),
       includedMonsters: new Set(DATA.monsters.map(m => m.MonsterName.toLowerCase())),
       monsterFilterActive: false,
@@ -726,7 +735,7 @@
       egg: $("f_egg").checked, gathering: $("f_gathering").checked,
       small: $("f_small").checked, multi: $("f_multi").checked,
       oneFaint: $("f_oneFaint").checked, onSite: $("f_onSite").checked,
-      pQuests: $("f_prowler").checked,
+      pQuests: $("f_prowler").checked, prowler: $("f_prowlerOn").checked,
       ranks: new Set(RANK_FILTERS.filter(([id]) => $(id).checked).map(([, , cat]) => cat)),
       includedMonsters: inc,
       monsterFilterActive: inc.size < DATA.monsters.length,
@@ -974,7 +983,8 @@
     };
     return {
       flags: ["f_low","f_high","f_g","f_sp","f_event","f_arena",
-              "f_large","f_hyper","f_capture","f_egg","f_gathering","f_small","f_multi","f_oneFaint","f_onSite","f_prowler"]
+              "f_large","f_hyper","f_capture","f_egg","f_gathering","f_small","f_multi","f_oneFaint","f_onSite",
+              "f_prowlerOn","f_prowler"]
         .reduce((a, id) => (a[id] = $(id).checked, a), {}),
       offMonsters: off("#monsterTree input.mon"),
       offWeapons: off("#weaponList input"),
@@ -1005,7 +1015,7 @@
     if (Number.isInteger(d.previewMin)) previewMin = d.previewMin;
     $("previewMin").value = String(previewMin);
     if (d.cfg && typeof d.cfg === "object") {
-      cfg.size = [3, 4, 5].includes(d.cfg.size) ? d.cfg.size : 5;
+      cfg.size = SIZES.includes(d.cfg.size) ? d.cfg.size : 5;
       cfg.free = d.cfg.free !== false;
       for (const c of CATS) {
         const v = d.cfg.cats ? (d.cfg.cats[c.id] | 0) : DEFAULT_CFG.cats[c.id];
@@ -1515,7 +1525,16 @@
     $("freeSpace").checked = odd && !!cfg.free;
   }
 
+  // Prowler-only quests can't be taken by a hunter, so they're meaningless unless Prowler
+  // itself is allowed. Mirrors the Quest Randomizer's "Prowler?" / "Prowler Quests?" pair.
+  function syncProwlerQuests() {
+    const on = $("f_prowlerOn").checked;
+    $("f_prowler").disabled = !on;
+    if (!on) $("f_prowler").checked = false;
+  }
+
   function onFilterChange() {
+    syncProwlerQuests();
     saveSettings();
     refreshCounts();
   }
@@ -1530,8 +1549,10 @@
     for (const [id, on] of [["f_low", true], ["f_high", true], ["f_g", true], ["f_sp", true], ["f_event", true], ["f_arena", true],
                             ["f_large", true], ["f_hyper", true], ["f_capture", true],
                             ["f_egg", true], ["f_gathering", true], ["f_small", true], ["f_multi", true],
-                            ["f_oneFaint", true], ["f_onSite", true], ["f_prowler", false]]) $(id).checked = on;
+                            ["f_oneFaint", true], ["f_onSite", true],
+                            ["f_prowlerOn", false], ["f_prowler", false]]) $(id).checked = on;
     document.querySelectorAll("#monsterTree input, #weaponList input, #styleList input, #biasList input").forEach(cb => { cb.checked = true; cb.indeterminate = false; });
+    syncProwlerQuests();
     buildCatRows();
     syncFreeSpace();
     saveSettings();
@@ -1563,6 +1584,7 @@
     loadPool();
     renderPool();
     loadSettings();
+    syncProwlerQuests();
     $("gridSize").value = String(cfg.size);
     syncFreeSpace();
 
@@ -1579,7 +1601,8 @@
       cfg.free = $("freeSpace").checked; saveSettings(); refreshCounts();
     });
     document.querySelectorAll("#f_low,#f_high,#f_g,#f_sp,#f_event,#f_arena,"
-      + "#f_large,#f_hyper,#f_capture,#f_egg,#f_gathering,#f_small,#f_multi,#f_oneFaint,#f_onSite,#f_prowler")
+      + "#f_large,#f_hyper,#f_capture,#f_egg,#f_gathering,#f_small,#f_multi,#f_oneFaint,#f_onSite,"
+      + "#f_prowlerOn,#f_prowler")
       .forEach(cb => cb.addEventListener("change", onFilterChange));
 
     $("monAll").addEventListener("click", () => { document.querySelectorAll("#monsterTree input").forEach(cb => { cb.checked = true; cb.indeterminate = false; }); onFilterChange(); });

@@ -108,6 +108,24 @@ added on its own axis, prefix its label too.
 
 `baseRank()` is the third piece: the plain Low/High/G band, used to build the label.
 
+### Prowler is three separate controls
+
+Mirrors the Quest Randomizer's `p_prowler` / `p_quests` pair, for the same reason — the two
+questions are unrelated:
+
+- **Include Prowler** (`f_prowlerOn` → `f.prowler`) emits the `Clear as a Prowler` squares.
+  Gated on nothing else: a Prowler can be taken on virtually any quest, so these are
+  achievable whatever the quest pool holds. It also gates the *Clear a quest as a Prowler*
+  objective, which is why `OBJECTIVES[].ok` takes `(pool, f)` rather than just the pool.
+- **Include Prowler-only quests** (`f_prowler` → `f.pQuests`) lets the 121 `Prowler`-flagged
+  quests into the pool, so their monsters and objectives become reachable. Disabled and
+  forced off when Include Prowler is off (`syncProwlerQuests`) — a hunter can't take one.
+- **Biases** are the third layer: subtractive, one square per checked bias.
+
+Gating the squares on `f.pQuests && pool.some(q => q.Prowler)` was the earlier behaviour and
+conflated all three: you could not play as a Prowler on ordinary quests without also dragging
+121 Prowler-only quests into the monster pool.
+
 **Border colour keys off `questCategory`**, i.e. the same axis as the Quest Filters checkboxes,
 so a square's colour always matches the filter that put it on the card. `CATEGORY_COLORS` runs
 the ranks warm and escalating — Low `#f2c53d` yellow, High `#f5851f` orange, G `#e5383b` red —

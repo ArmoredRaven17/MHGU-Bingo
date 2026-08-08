@@ -141,8 +141,12 @@
       <section class="panel" data-open="false">
         <button class="panel-head">Prowler <span class="chev">&#9662;</span></button>
         <div class="panel-body">
-          <label class="chk"><input type="checkbox" id="f_prowler">Include Prowler quests</label>
+          <label class="chk"><input type="checkbox" id="f_prowlerOn">Include Prowler</label>
           <p class="hint">Adds &ldquo;Clear as a Prowler&rdquo; squares, one per bias below.</p>
+          <label class="chk"><input type="checkbox" id="f_prowler">Include Prowler-only quests</label>
+          <p class="hint">Lets quests only a Prowler can take into the pool, so their
+            monsters and objectives can appear.</p>
+          <p class="hint">Biases &mdash; uncheck to leave one off the card.</p>
           <div id="biasList"></div>
         </div>
       </section>
@@ -191,7 +195,8 @@
     <ul>
       <li><strong>Monsters</strong> &mdash; hunt a monster at a given rank, e.g. <em>Hunt Rathalos</em>
           (High Rank). A monster huntable at more than one rank gets a square for each.</li>
-      <li><strong>Weapons</strong> &mdash; clear anything with a given weapon and style.</li>
+      <li><strong>Weapons</strong> &mdash; clear anything with a given weapon and style, plus
+        one square per Prowler bias when Prowler is included.</li>
       <li><strong>Objectives</strong> &mdash; capture something, clear a Hyper quest, no-faint runs.</li>
       <li><strong>Custom</strong> &mdash; whatever you add yourself.</li>
     </ul>
@@ -376,6 +381,6 @@
 </div>
 
 <script src="data.js?v=1"></script>
-<script src="app.js?v=27"></script>
+<script src="app.js?v=28"></script>
 </body>
 </html>
