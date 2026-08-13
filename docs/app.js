@@ -1370,6 +1370,33 @@
     return hslToRgb([hue, 0.95, 0.20]);
   }
 
+  // New Card, the one control the page wants you to reach for. It used to be --bg1, a
+  // near-black shade of the theme sitting on the near-black --bg2 sidebar, so it read as
+  // just another panel.
+  //
+  // Same lightness search as winColor and for the same reason — HSL lightness isn't
+  // perceived brightness, so one fixed value would be legible at some hues and not others —
+  // but at the theme's OWN hue rather than its opposite. That keeps it in the family and
+  // leaves the 180°-rotated --win as the only thing on the page wearing that colour, so a
+  // bright button never reads as a bingo.
+  //
+  // Saturation is taken from the theme untouched. An earlier version floored it, which put
+  // a blue button on K. Daora, Valstrax and Forbidden — the three neutral themes have
+  // barely any chroma, so a floor doesn't make them vivid, it invents a hue out of
+  // rounding noise. Lightness alone is enough to separate the button there: the search
+  // still lands it ~4.5:1 clear of the sidebar, just in grey.
+  //
+  // Lightening from the theme colour instead was the obvious alternative and fails outright
+  // on the pale themes — lighten(#aeb5c1, .40) is near-white, and the button's text is white.
+  function ctaColor(c) {
+    const [hue, sat] = rgbToHsl(c);
+    for (let l = 0.62; l >= 0.22; l -= 0.01) {
+      const cand = hslToRgb([hue, sat, l]);
+      if (contrast(cand, WHITE) >= 4.5) return cand;
+    }
+    return hslToRgb([hue, sat, 0.22]);
+  }
+
   // Every theme in COLORS is a dark one, so there's no light branch to switch on.
   function applyTheme(hex) {
     const c = hexRgb(hex), r = document.documentElement.style;
@@ -1383,6 +1410,7 @@
     r.setProperty("--accent",       css(accent));
     r.setProperty("--accent-hover", css(lighten(c, .40)));
     r.setProperty("--win",          css(winColor(c)));
+    r.setProperty("--cta",          css(ctaColor(c)));
     r.setProperty("--text",     "#ffffff");
     r.setProperty("--text-dim", "#fffffff5");
     r.setProperty("--line",     "rgba(11,8,8,0.12)");

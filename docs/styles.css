@@ -88,8 +88,16 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
     url('assets/banner-background.png');
   background-position:right;
 }
-.btn.accent{background:var(--bg1);border-color:#000;color:#fff;font-weight:600;text-shadow:-1px 0 rgba(0,0,0,.55),1px 0 rgba(0,0,0,.55),0 -1px rgba(0,0,0,.55),0 1px rgba(0,0,0,.55)}
-.btn.accent:hover{background:var(--bg2)}
+/* The one call to action. --cta is the theme's own hue at the brightest lightness that
+   still clears 4.5:1 against white text (see ctaColor), so it stays legible on all 27
+   themes. background-image:none drops .btn.block's texture, which washed the colour out. */
+.btn.accent{
+  background:var(--cta);background-image:none;
+  border-color:rgba(0,0,0,.45);color:#fff;font-weight:600;
+  text-shadow:-1px 0 rgba(0,0,0,.55),1px 0 rgba(0,0,0,.55),0 -1px rgba(0,0,0,.55),0 1px rgba(0,0,0,.55);
+}
+.btn.accent:hover{background:color-mix(in srgb,var(--cta) 84%,#ffffff)}
+.btn.accent:disabled:hover{background:var(--cta)}
 
 /* ── Collapsible panels ────────────────────────────────────────────────────── */
 .panel{border:1px solid var(--line);border-radius:8px;overflow:clip;background:var(--bg2)}

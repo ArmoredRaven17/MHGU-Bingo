@@ -174,6 +174,31 @@ Hue rotation guarantees separation but says nothing about luminance — on gold 
 square and an unmarked one land within 1.02:1. So `.cell.line` also carries an inset white ring,
 bold text, and a glow, none of which depend on colour.
 
+## The New Card button (`--cta`)
+
+Same lightness search as `winColor`, and for the same reason, but at the theme's **own** hue
+and saturation — it should read as the loudest control on the page without wearing the colour
+that means "you won". Verified across all 27 themes: 4.50–4.93:1 against its white text, and
+4.26–4.66:1 against the sidebar behind it.
+
+It was `--bg1` before, a near-black shade of the theme sitting on the near-black `--bg2`
+sidebar — 1.21:1 on Forbidden, i.e. invisible.
+
+Two things this must not do:
+
+- **Don't floor the saturation.** An early version did, to give the neutral themes
+  (K. Daora, Valstrax, Forbidden) something vivid. Those themes have almost no chroma, so a
+  floor doesn't make them vivid — it amplifies rounding noise into a hue, and all three came
+  out **blue**. They get a neutral grey button instead, at the same contrast as everywhere
+  else, which is what keeps the treatment consistent rather than the colour.
+- **Don't lighten from the theme colour.** `lighten(#aeb5c1, .40)` is near-white and the
+  button's text is white.
+
+On dark themes the search lands lighter than the sidebar, on the pale ones darker. Either way
+the separation is ~4.5:1 — the goal is *stands out*, not *is bright*.
+
+`.btn.accent` must also set `background-image:none`, or `.btn.block`'s texture washes it out.
+
 **Measuring cell colours:** `.cell` transitions `background` and `border-color` over 0.12s, and
 `getComputedStyle` reports the *animated* value. In a browser that isn't compositing frames
 (a headless or hidden pane), those transitions never advance, so colour reads come back frozen
