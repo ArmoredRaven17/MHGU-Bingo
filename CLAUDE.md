@@ -66,15 +66,15 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 |---|---|---|
 | Monsters | `Hunt Rathalos` + a rank sub-line | by filter category (see below) |
 | Weapons | `Clear with Hunting Horn` + a style sub-line, plus one `Clear as a Prowler` per enabled bias | by weapon |
-| Objectives | `Capture a monster` — one per Objective Filters box, plus Prowler | one flat colour |
+| Objectives | `Capture a monster` — one per box in the Objectives panel, plus Prowler | one flat colour |
 | Custom | the user's own text | one flat colour |
 
 **There is no "specific quest" pool.** Monster goals are generated per *(monster, rank)* pair
 found in the filtered quest pool, so a monster huntable at two ranks yields two squares. The
-Objective Filters still matter — they decide which monsters and ranks exist and gate the
-objectives.
+Objectives panel's filters still matter — they decide which monsters and ranks exist and gate
+the objectives.
 
-### `OBJECTIVES` mirrors the Objective Filters panel
+### `OBJECTIVES` mirrors the Objectives panel's checkboxes
 
 One objective per checkbox, in the panel's own order, plus Prowler (which has its own toggle).
 There is deliberately **no objective without a control behind it** — `Clear a quest without
@@ -88,7 +88,7 @@ Changing this list changes generated cards but **not** the fingerprint, which co
 and `dataVersion` only. Seeds minted before such a change rebuild differently with no warning,
 so treat an edit here the same as a data rebuild.
 
-### Objective Filters are two independent gates, not one axis
+### The Objectives panel's filters are two independent gates, not one axis
 
 The six checkboxes look like one list but are two:
 
@@ -141,8 +141,8 @@ Gating the squares on `f.pQuests && pool.some(q => q.Prowler)` was the earlier b
 conflated all three: you could not play as a Prowler on ordinary quests without also dragging
 121 Prowler-only quests into the monster pool.
 
-**Border colour keys off `questCategory`**, i.e. the same axis as the Objective Filters checkboxes,
-so a square's colour always matches the filter that put it on the card. `CATEGORY_COLORS` runs
+**Border colour keys off `questCategory`**, i.e. the same axis as the Objectives panel's
+checkboxes, so a square's colour always matches the filter that put it on the card. `CATEGORY_COLORS` runs
 the ranks warm and escalating — Low `#f2c53d` yellow, High `#f5851f` orange, G `#e5383b` red —
 and gives the categories on their own filter axis their own hues: Special Permits `#8b31d9`
 purple, Events `#2456c7` blue, Arena `#8a8f98` grey. `POOL_COLORS` covers the pools that aren't

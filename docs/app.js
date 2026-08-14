@@ -30,7 +30,7 @@
     tint ? css(lighten(hexRgb(tint), 0.55)) : "rgba(255,255,255,.55)";
 
   // Border colour is keyed on the filter category a square came from — the same axis as
-  // questCategory and the Objective Filters checkboxes — so the colour always matches the
+  // questCategory and the Objectives panel's checkboxes — so the colour always matches the
   // filter that put it on the card. Ranks run warm and escalating (yellow to red);
   // the categories on their own filter axis get their own hues.
   const CATEGORY_COLORS = {
@@ -126,7 +126,7 @@
     return prefix + r + " Rank";
   }
 
-  // What the Objective Filters switch on. Village / Hub / Pub / Events are just delivery
+  // What the Objectives panel's filters switch on. Village / Hub / Pub / Events are just delivery
   // mechanisms for a rank, so they collapse into Low / High / G; Special Permits and Arena
   // are their own thing and stay separate. This is the filter axis — rankLabel above stays
   // the *display* rank, which is why an SP quest still shows "High Rank" on a card.
@@ -413,7 +413,7 @@
 
   // Each objective is gated on the pool actually containing a quest that can satisfy it,
   // so a card never asks for something impossible under the current filters.
-  // One objective per Objective Filters checkbox, listed in the panel's own order. With no
+  // One objective per checkbox in the Objectives panel, listed in its own order. With no
   // specific-quest pool, a quest type is the only way a square can point at a quest, so the
   // two lists are the same list — ticking a filter is what makes its objective reachable,
   // and no objective exists without a filter behind it.
