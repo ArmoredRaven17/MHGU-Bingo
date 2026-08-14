@@ -71,9 +71,10 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 
 **There is no "specific quest" pool.** Monster goals are generated per *(monster, rank)* pair
 found in the filtered quest pool, so a monster huntable at two ranks yields two squares. The
-quest filters still matter — they decide which monsters and ranks exist and gate the objectives.
+Objective Filters still matter — they decide which monsters and ranks exist and gate the
+objectives.
 
-### Quest filters are two independent gates, not one axis
+### Objective Filters are two independent gates, not one axis
 
 The six checkboxes look like one list but are two:
 
@@ -126,7 +127,7 @@ Gating the squares on `f.pQuests && pool.some(q => q.Prowler)` was the earlier b
 conflated all three: you could not play as a Prowler on ordinary quests without also dragging
 121 Prowler-only quests into the monster pool.
 
-**Border colour keys off `questCategory`**, i.e. the same axis as the Quest Filters checkboxes,
+**Border colour keys off `questCategory`**, i.e. the same axis as the Objective Filters checkboxes,
 so a square's colour always matches the filter that put it on the card. `CATEGORY_COLORS` runs
 the ranks warm and escalating — Low `#f2c53d` yellow, High `#f5851f` orange, G `#e5383b` red —
 and gives the categories on their own filter axis their own hues: Special Permits `#8b31d9`

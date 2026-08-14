@@ -30,7 +30,7 @@
     tint ? css(lighten(hexRgb(tint), 0.55)) : "rgba(255,255,255,.55)";
 
   // Border colour is keyed on the filter category a square came from — the same axis as
-  // questCategory and the Quest Filters checkboxes — so the colour always matches the
+  // questCategory and the Objective Filters checkboxes — so the colour always matches the
   // filter that put it on the card. Ranks run warm and escalating (yellow to red);
   // the categories on their own filter axis get their own hues.
   const CATEGORY_COLORS = {
@@ -126,7 +126,7 @@
     return prefix + r + " Rank";
   }
 
-  // What the quest filters switch on. Village / Hub / Pub / Events are just delivery
+  // What the Objective Filters switch on. Village / Hub / Pub / Events are just delivery
   // mechanisms for a rank, so they collapse into Low / High / G; Special Permits and Arena
   // are their own thing and stay separate. This is the filter axis — rankLabel above stays
   // the *display* rank, which is why an SP quest still shows "High Rank" on a card.
