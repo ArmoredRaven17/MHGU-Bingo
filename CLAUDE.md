@@ -66,13 +66,27 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 |---|---|---|
 | Monsters | `Hunt Rathalos` + a rank sub-line | by filter category (see below) |
 | Weapons | `Clear with Hunting Horn` + a style sub-line, plus one `Clear as a Prowler` per enabled bias | by weapon |
-| Objectives | `Capture a monster` | one flat colour |
+| Objectives | `Capture a monster` — one per Objective Filters box, plus Prowler | one flat colour |
 | Custom | the user's own text | one flat colour |
 
 **There is no "specific quest" pool.** Monster goals are generated per *(monster, rank)* pair
 found in the filtered quest pool, so a monster huntable at two ranks yields two squares. The
 Objective Filters still matter — they decide which monsters and ranks exist and gate the
 objectives.
+
+### `OBJECTIVES` mirrors the Objective Filters panel
+
+One objective per checkbox, in the panel's own order, plus Prowler (which has its own toggle).
+There is deliberately **no objective without a control behind it** — `Clear a quest without
+fainting` was removed for exactly that reason, and `Clear a Key quest` because its filter went
+away with Key Quests Only. Don't reintroduce an ungated one.
+
+The rank boxes are the intended exception: rank rides on the monster squares' sub-line, so
+`Clear a High Rank quest` would restate `Hunt Tigrex (High Rank)`.
+
+Changing this list changes generated cards but **not** the fingerprint, which covers settings
+and `dataVersion` only. Seeds minted before such a change rebuild differently with no warning,
+so treat an edit here the same as a data rebuild.
 
 ### Objective Filters are two independent gates, not one axis
 

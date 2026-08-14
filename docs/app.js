@@ -413,23 +413,33 @@
 
   // Each objective is gated on the pool actually containing a quest that can satisfy it,
   // so a card never asks for something impossible under the current filters.
+  // One objective per Objective Filters checkbox, listed in the panel's own order. With no
+  // specific-quest pool, a quest type is the only way a square can point at a quest, so the
+  // two lists are the same list — ticking a filter is what makes its objective reachable,
+  // and no objective exists without a filter behind it.
+  //
+  // The rank boxes (Low/High/G) are deliberately absent: rank is carried on the monster
+  // squares' sub-line, so "Clear a High Rank quest" would duplicate them.
+  //
+  // Ordering is load-bearing — the goal list must come out identical here and in
+  // worker/src/bingo-gen.js.
   const OBJECTIVES = [
-    { id:"capture",  text:"Capture a monster",             icon:"", ok:p => p.some(q => q.Capture) },
+    { id:"sp",       text:"Clear a Special Permit",        icon:"", ok:p => p.some(q => q.Type === "Special Permits") },
+    { id:"event",    text:"Clear an Event quest",          icon:"", ok:p => p.some(q => q.Type === "Events") },
+    { id:"arena",    text:"Clear an Arena quest",          icon:"", ok:p => p.some(q => q.Type === "Arena") },
+    { id:"large",    text:"Clear a Large Monster quest",   icon:"", ok:p => p.some(q => q.LgMonster) },
     { id:"hyper",    text:"Clear a Hyper quest",           icon:"assets/MonsterIcons/MHGU-Hyper_Monster_Icon.png", ok:p => p.some(q => q.Hyper) },
+    { id:"capture",  text:"Capture a monster",             icon:"", ok:p => p.some(q => q.Capture) },
     { id:"egg",      text:"Clear an Egg Delivery",         icon:"assets/MonsterIcons/MHGU-Egg_Quest_Icon.webp", ok:p => p.some(q => q.Egg) },
     { id:"gather",   text:"Clear a Gathering quest",       icon:"assets/MonsterIcons/MHGU-Wycademy_Quest_Icon.png", ok:p => p.some(q => q.Gathering) },
     { id:"small",    text:"Clear a Small Monster quest",   icon:"", ok:p => p.some(q => q.SmMonsters) },
-    { id:"key",      text:"Clear a Key quest",             icon:"", ok:p => p.some(q => q.Key) },
-    { id:"sp",       text:"Clear a Special Permit",        icon:"", ok:p => p.some(q => q.Type === "Special Permits") },
-    { id:"arena",    text:"Clear an Arena quest",          icon:"", ok:p => p.some(q => q.Type === "Arena") },
-    { id:"event",    text:"Clear an Event quest",          icon:"", ok:p => p.some(q => q.Type === "Events") },
-    // Answers to the Prowler toggle rather than the pool: any quest counts, so what makes
-    // this reachable is being allowed to play one at all.
-    { id:"prowler",  text:"Clear a quest as a Prowler",    icon:"", ok:(p, f) => f.prowler },
+    { id:"multi",    text:"Clear a Multi-Monster quest",   icon:"", ok:p => p.some(q => q.Monsters && q.Monsters.length > 1) },
     { id:"onefaint", text:"Clear a One-Faint quest",       icon:"", ok:p => p.some(q => q.OneFaint) },
     { id:"onsite",   text:"Clear an On-Site Items quest",  icon:"", ok:p => p.some(q => q.OnSite) },
-    { id:"multi",    text:"Clear a Multi-Monster quest",   icon:"", ok:p => p.some(q => q.Monsters && q.Monsters.length > 1) },
-    { id:"nofaint",  text:"Clear a quest without fainting",icon:"", ok:() => true },
+    // The one with no box in that panel. Prowler answers to its own toggle rather than the
+    // pool — any quest counts, so what makes it reachable is being allowed to play one at
+    // all. Every objective now has a control behind it; don't add one that doesn't.
+    { id:"prowler",  text:"Clear a quest as a Prowler",    icon:"", ok:(p, f) => f.prowler },
   ];
   function objectiveGoals(pool, f) {
     return OBJECTIVES.filter(o => o.ok(pool, f))
