@@ -4,11 +4,17 @@ Guidance for Claude Code (claude.ai/code) when working in this repository.
 
 ## Project Overview
 
-MHGU Bingo is a static bingo-card generator for Monster Hunter Generations Ultimate. Cells are
+MHGU Quest Bingo is a static bingo-card generator for Monster Hunter Generations Ultimate. Cells are
 hunting goals drawn from five pools — monsters, quests, weapon/style combos, objectives, and the
 user's own custom entries. Cards are seeded, markable, and shareable.
 
 **Live URL:** https://armoredraven17.github.io/MHGU-Bingo/
+
+The app is named **MHGU Quest Bingo**; the repo, the Pages path and the `mhgu-bingo-*`
+storage keys stay `MHGU-Bingo`. That split is deliberate — renaming the repo would break
+every published share link, every `!bingo` URL the Worker prints, and `BINGO_APP_URL` in
+the Randomizer's worker. The display name disambiguates it from the sibling
+**MHGU Talisman Bingo**; in the Other MHGU Apps modal it is listed as *Quest Bingo*.
 
 **To develop:** serve `docs/` over HTTP — `python -m http.server` from inside `docs/`, then open
 http://localhost:8000. There is no build step for the app itself.

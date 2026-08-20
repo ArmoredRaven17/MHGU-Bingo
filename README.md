@@ -1,4 +1,4 @@
-# MHGU Bingo
+# MHGU Quest Bingo
 
 A bingo card generator for **Monster Hunter Generations Ultimate**.
 

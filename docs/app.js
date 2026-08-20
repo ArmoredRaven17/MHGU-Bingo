@@ -63,7 +63,7 @@
   const COLORS = [
     ["Teostra","#570B0B"],["Rathalos","#b51717"],
     ["Tetsucabra","#68360D"],["Agnaktor","#B5590D"],
-    ["Tigrex","#574916"],["Rajang","#9C8328"],
+    ["Tigrex","#68581A"],["Rajang","#9C8328"],
     ["Deviljho","#0B570F"],["Rathian","#39993E"],
     ["Astalos","#14503d"],["Zinogre","#279773"],
     ["Zamtrios","#005984"],["Plesioth","#0080c1"],
@@ -78,17 +78,20 @@
   ];
   // THE PALETTE'S ONE INVARIANT: every theme takes white text and a white checkbox tick.
   //
-  // Both come off the same number. A native checkbox takes accent-color from the theme and the
-  // browser picks the tick glyph itself — white below relative luminance .1791, black above it —
-  // and applyTheme picks the text direction the same way, light text while the draw block's
-  // ground sits under that same .1791. The ground is the lighter of the two surfaces (a 60/40
-  // composite of darken(hex,.80) and darken(hex,.95), against the tick's darken(hex,.70)), so it
-  // is strictly the binding one: hold the ground under the line and the tick follows for free.
+  // Two requirements, one number. A native checkbox takes accent-color from the theme and the
+  // browser picks the tick glyph itself — white below relative luminance .1791, black above it.
+  // White body text needs its ground at .1833 or below to clear 4.5:1. The checkbox line is the
+  // stricter of the two, so hold a surface under .1791 and white text on it clears AA for free.
   //
-  // Every theme is under it now, so the light-text branch never fires and no theme renders the
-  // other way round from the rest. Worst white-on-ground in the palette is 4.73:1, clearing AA.
-  // The one exemption is the Quest Randomizer's Gypceros, a white gag theme whose whole joke is
-  // tripping the light branch; it is not in this list anywhere else.
+  // The binding surface is the lightest one a theme paints — a 60/40 composite of darken(hex,.80)
+  // and darken(hex,.95), lighter than the tick's own darken(hex,.70), so testing the composite
+  // covers both. Every theme is under it; worst white-on-ground in the palette is 4.73:1.
+  //
+  // This is load-bearing rather than cosmetic. Most of these apps paint white text unconditionally
+  // with no light-theme fallback left, so a swatch over the line is not a slightly-too-bright
+  // swatch, it is unreadable. The Hunting Log and the Randomizer do still carry an isLight branch,
+  // but it trips only at near-white and nothing in the palette comes close. The Randomizer's
+  // Gypceros is the deliberate exception — tripping that branch is its entire joke.
   //
   // A NEW OR RE-CUT COLOUR HAS TO CLEAR THIS. A swatch that fails is not a slightly-too-bright
   // swatch, it is a theme that inverts against every other one.
@@ -102,7 +105,7 @@
   // Two pairs are re-cuts of other pairs, keeping their own slot on the wheel and taking the
   // source pair's saturation and lightness, member for member:
   //
-  //   Tigrex / Rajang        <- Astalos / Zinogre,      at the yellow slot (47°)
+  //   Tigrex / Rajang        <- Astalos / Zinogre,      at the yellow slot (47°), Tigrex lifted a further 20%
   //   Tetsucabra / Agnaktor  <- Brachydios / Lagiacrus, at the orange slot (27°), both lifted 20%
   //
   // The earth tones (Duramboros, Diablos, Barroth, Bulldrome) share the 27–47° stretch with both
@@ -117,7 +120,8 @@
   // map is kept identical in all nine apps regardless of which app released what, because this
   // palette is hand-copied with no shared source.
   const LEGACY_HEX = {
-    "#C8A319": "#574916", "#57470B": "#574916", "#5E4D0C": "#574916",           // Tigrex
+    "#C8A319": "#68581A", "#57470B": "#68581A", "#5E4D0C": "#68581A",           // Tigrex
+    "#574916": "#68581A",
     "#F1D364": "#9C8328", "#B59417": "#9C8328", "#C39F19": "#9C8328",           // Rajang
     "#BEA031": "#9C8328",
     "#C65900": "#68360D", "#FC933E": "#B5590D",                                 // Tetsucabra, Agnaktor
