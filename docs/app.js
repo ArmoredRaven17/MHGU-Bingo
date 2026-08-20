@@ -62,8 +62,8 @@
 
   const COLORS = [
     ["Teostra","#570B0B"],["Rathalos","#b51717"],
-    ["Tetsucabra","#68360D"],["Agnaktor","#B5590D"],
-    ["Tigrex","#68581A"],["Rajang","#9C8328"],
+    ["Tetsucabra","#783E0F"],["Agnaktor","#C7620E"],
+    ["Tigrex","#74631D"],["Rajang","#9C8328"],
     ["Deviljho","#0B570F"],["Rathian","#39993E"],
     ["Astalos","#14503d"],["Zinogre","#279773"],
     ["Zamtrios","#005984"],["Plesioth","#0080c1"],
@@ -105,8 +105,18 @@
   // Two pairs are re-cuts of other pairs, keeping their own slot on the wheel and taking the
   // source pair's saturation and lightness, member for member:
   //
-  //   Tigrex / Rajang        <- Astalos / Zinogre,      at the yellow slot (47°), Tigrex lifted a further 20%
-  //   Tetsucabra / Agnaktor  <- Brachydios / Lagiacrus, at the orange slot (27°), both lifted 20%
+  //   Tigrex / Rajang        <- Astalos / Zinogre,      at the yellow slot (47°)
+  //   Tetsucabra / Agnaktor  <- Brachydios / Lagiacrus, at the orange slot (27°)
+  //
+  // Both pairs then come back up as far as the line allows, less a working margin, because a
+  // source pair brings its own lightness along and the teal and blue pairs are the dark ones.
+  //
+  // RAJANG IS THE ONE SITTING ON THE CEILING. Its ground measures .170 against the .1791 line,
+  // so it has no lift left: brightening it buys dark text and a black tick, which is the exact
+  // thing this invariant exists to prevent. If it ever has to read punchier, trade saturation
+  // for lightness along the boundary (#A58100 at S 1.00 is the vivid end) rather than pushing
+  // lightness up — but that drops it to L .32 and squeezes the pair against Tigrex, so check
+  // the separation before taking it.
   //
   // The earth tones (Duramboros, Diablos, Barroth, Bulldrome) share the 27–47° stretch with both
   // of those pairs by design. Swatches sitting close together in there is expected and is not a
@@ -116,15 +126,22 @@
   // longer in the list: it never picks up the change, and anything keyed off the hex (the selected
   // swatch, the theme's icon) stops matching. Remap on read, not on write — the stale value is
   // already in localStorage on every device that chose it. Only hexes that actually shipped are
-  // listed; cuts that never left the working tree are not, because no device can hold them. The
-  // map is kept identical in all nine apps regardless of which app released what, because this
-  // palette is hand-copied with no shared source.
+  // listed; cuts that never left the working tree are not, because no device can hold them.
+  //
+  // "Shipped" is per app, not per palette. #574916 went out on Talisman Bingo alone, and
+  // #68360D / #B5590D / #68581A on MHGU Bingo alone, because an unrelated commit in each of
+  // those repos swept the working tree mid-edit and pushed a cut that was still being tuned.
+  // They are listed in all nine anyway: the map is kept identical regardless of which app
+  // released what, because this palette is hand-copied with no shared source and a per-app map
+  // is one more thing to drift.
   const LEGACY_HEX = {
-    "#C8A319": "#68581A", "#57470B": "#68581A", "#5E4D0C": "#68581A",           // Tigrex
-    "#574916": "#68581A",
+    "#C8A319": "#74631D", "#57470B": "#74631D", "#5E4D0C": "#74631D",           // Tigrex
+    "#574916": "#74631D",
     "#F1D364": "#9C8328", "#B59417": "#9C8328", "#C39F19": "#9C8328",           // Rajang
     "#BEA031": "#9C8328",
-    "#C65900": "#68360D", "#FC933E": "#B5590D",                                 // Tetsucabra, Agnaktor
+    "#C65900": "#783E0F", "#FC933E": "#C7620E",                                 // Tetsucabra, Agnaktor
+    "#68360D": "#783E0F", "#B5590D": "#C7620E",                                 // ...and the cuts that
+    "#68581A": "#74631D",                                                       // reached MHGU Bingo only
     "#3A9B3F": "#39993E", "#2DAE85": "#279773",                                 // Rathian, Zinogre
     "#D84696": "#D4358C", "#CE79A8": "#C8679D",                                 // Mizutsune, Congalala
     "#B57C45": "#835A32", "#CFAA87": "#B17A47",                                 // Barroth, Bulldrome
