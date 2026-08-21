@@ -37,7 +37,7 @@
     Low: "#f2c53d", High: "#f5851f", G: "#e5383b",
     SP: "#8b31d9", Event: "#2456c7", Arena: "#8a8f98", "": "#8a8f98",
   };
-  const POOL_COLORS = { objective: "#9b8cff", custom: "#5ec9a0", free: "#8a8f98" };
+  const POOL_COLORS = { objective: "#9b8cff", talisman: "#d95a9c", custom: "#5ec9a0", free: "#8a8f98" };
 
   // Cell text is never shrunk to fit — it's capped instead, so every card renders at one
   // size. The longest generated goal ("Hunt Chaotic Gore Magala") is 24 characters; this
@@ -161,6 +161,8 @@
   const weaponIcon = (w) => "assets/WeaponIcons/icon_" +
     w.toLowerCase().replace(/ & /g, "_and_").replace(/ /g, "_") + "_tinted.png";
   const prowlerIcon = (f) => "assets/ProwlerIcons/" + f;
+  // One icon per rarity, r1-r10 — vendored from MHGU Talisman Bingo alongside the tables.
+  const talismanIcon = (r) => "assets/TalismanIcons/icon_talisman_r" + r + ".png";
 
   // ── Quest name parsing ─────────────────────────────────────────────────────
   function spTier(name) {
@@ -254,7 +256,7 @@
   // ── Seed codec ─────────────────────────────────────────────────────────────
   const B32 = "0123456789ABCDEFGHJKMNPQRSTVWXYZ"; // Crockford: no I, L, O, U
   const b32 = (n, len) => { let s = ""; for (let i = 0; i < len; i++) { s = B32[n & 31] + s; n = n >>> 5; } return s; };
-  const CAT_LETTER = { monster:"M", weapon:"W", objective:"O", custom:"C" };
+  const CAT_LETTER = { monster:"M", weapon:"W", objective:"O", talisman:"T", custom:"C" };
   const LETTER_CAT = Object.fromEntries(Object.entries(CAT_LETTER).map(([k, v]) => [v, k]));
   const SEED_RE = /^MHGU-([3-9]|10)([FN])-((?:[MWOC][1-9])+)-([0-9A-Z]{6})-([0-9A-Z]{4})$/;
 
@@ -312,7 +314,7 @@
   }
 
   // ── State ──────────────────────────────────────────────────────────────────
-  const DEFAULT_CFG = { size: 5, free: true, cats: { monster: 4, weapon: 3, objective: 2, custom: 3 } };
+  const DEFAULT_CFG = { size: 5, free: true, cats: { monster: 4, weapon: 3, objective: 2, talisman: 2, custom: 3 } };
   // Must match the #gridSize options and the Worker's SIZES, or a saved size is silently
   // snapped back to 5 on reload.
   const SIZES = [3, 4, 5, 6, 7, 8, 9, 10];
@@ -485,6 +487,38 @@
 
   // Each objective is gated on the pool actually containing a quest that can satisfy it,
   // so a card never asks for something impossible under the current filters.
+  // Talisman squares. Marked by hand like everything else — the app doesn't simulate melding,
+  // it just names something worth getting.
+  //
+  // Three kinds, matching the axes a talisman actually varies on: its rarity (which is its
+  // name), its slot count, and a skill it carries. Deliberately NOT skill points or two-skill
+  // combos — those are the two things that make a charm goal a long grind rather than
+  // something you tick off in a session.
+  //
+  // The skill list is derived in tools/build-data.js rather than picked here: only trees that
+  // can roll on all four talisman tiers qualify, so any talisman you meld could carry one.
+  // Fixed emission order — rarity, slots, skills — so the goal list is identical here and in
+  // the Worker.
+  function talismanGoals() {
+    const T = DATA.talismans || { names: {}, slots: [], skills: [] };
+    const out = [];
+    for (let r = 1; r <= 10; r++) {
+      const name = T.names[r];
+      if (!name) continue;
+      out.push({ key: "t:r:" + r, cat: "talisman", text: "Obtain a " + name,
+                 sub: "", icon: talismanIcon(r), tint: POOL_COLORS.talisman });
+    }
+    for (const n of (T.slots || [])) {
+      out.push({ key: "t:s:" + n, cat: "talisman", text: "Obtain a " + n + "-slot Talisman",
+                 sub: "", icon: "", tint: POOL_COLORS.talisman });
+    }
+    for (const name of (T.skills || [])) {
+      out.push({ key: "t:k:" + name, cat: "talisman", text: "Obtain a Talisman with " + name,
+                 sub: "", icon: "", tint: POOL_COLORS.talisman });
+    }
+    return out;
+  }
+
   // One objective per checkbox in the Objectives panel, listed in its own order. With no
   // specific-quest pool, a quest type is the only way a square can point at a quest, so the
   // two lists are the same list — ticking a filter is what makes its objective reachable,
@@ -531,6 +565,7 @@
     { id:"monster",   label:"Monsters",   items:(pool)        => monsterGoals(pool) },
     { id:"weapon",    label:"Weapons",    items:(pool, f)     => weaponGoals(pool, f) },
     { id:"objective", label:"Objectives", items:(pool, f)     => objectiveGoals(pool, f) },
+    { id:"talisman",  label:"Talismans",  items:()            => talismanGoals() },
     { id:"custom",    label:"Custom",     items:(pool, f, cp) => customGoals(cp) },
   ];
 
@@ -1530,7 +1565,8 @@
       [CATEGORY_COLORS.Low, "Low Rank"], [CATEGORY_COLORS.High, "High Rank"],
       [CATEGORY_COLORS.G, "G Rank"], [CATEGORY_COLORS.SP, "Special Permits"],
       [CATEGORY_COLORS.Event, "Events"], [CATEGORY_COLORS.Arena, "Arena"],
-      [POOL_COLORS.objective, "Objectives"], [POOL_COLORS.custom, "Your own entries"],
+      [POOL_COLORS.objective, "Objectives"], [POOL_COLORS.talisman, "Talismans"],
+      [POOL_COLORS.custom, "Your own entries"],
     ]) row(cats, colour, label);
 
     const strip = $("legendWeapons");

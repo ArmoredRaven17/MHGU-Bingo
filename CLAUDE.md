@@ -30,6 +30,7 @@ features (below) won't behave like production.
 - `docs/data.js` — **generated**, do not edit by hand (see below)
 - `tools/build-data.js` — regenerates `docs/data.js`
 - `QuestData.json`, `LgMonsters.json` — vendored copies of the MHGU Quest Randomizer's data
+- `talisman.json`, `talisman_charm_table.json`, `skills.json` — vendored from MHGU Talisman Bingo
 
 ## Cache busting (mandatory)
 
@@ -73,12 +74,32 @@ Four pools fill the squares, each with an on/off toggle and a 1-9 weight:
 | Monsters | `Hunt Rathalos` + a rank sub-line | by filter category (see below) |
 | Weapons | `Clear with Hunting Horn` + a style sub-line, plus one `Clear as a Prowler` per enabled bias | by weapon |
 | Objectives | `Capture a monster` — one per box in the Objectives panel, plus Prowler | one flat colour |
+| Talismans | `Obtain a King Talisman` — rarity, slot count, or a skill | one flat colour |
 | Custom | the user's own text | one flat colour |
 
 **There is no "specific quest" pool.** Monster goals are generated per *(monster, rank)* pair
 found in the filtered quest pool, so a monster huntable at two ranks yields two squares. The
 Objectives panel's filters still matter — they decide which monsters and ranks exist and gate
 the objectives.
+
+### The Talismans pool
+
+Three kinds of square, one per axis a talisman actually varies on: its **rarity** (which is
+its name — Pawn through Creator), its **slot count** (0-3), and a **skill** it carries.
+
+Deliberately **not** skill points and **not** two-skill combos. Those are the two shapes that
+turn a charm goal into a long grind instead of something you tick off in a session — they're
+what MHGU Talisman Bingo exists for, with probability floors and a pruned tree pool to make
+them fair. This app has none of that machinery and doesn't need it.
+
+The nine skills offered are **derived, not chosen**: `tools/build-data.js` keeps only trees
+that can roll in all four talisman tiers, so any talisman you meld could carry one. The other
+128 eligible trees are tier-locked and would sit unmarked. Deviant trees (ids 144-179) are cut
+because `Bloodbath X` isn't a readable square. Don't hand-edit that list — re-derive it.
+
+23 squares total, which is one short of filling a 5×5 with a free space. That's deliberate to
+leave alone, not a bug: with every other pool off, the card degrades to a single `—` and the
+banner says so.
 
 ### `OBJECTIVES` mirrors the Objectives panel's checkboxes
 
