@@ -340,7 +340,7 @@ a.icon-btn{display:inline-flex;align-items:center;text-decoration:none}
 .modal-card h2{margin:0 0 16px;font-size:18px}
 .modal-card h3{margin:16px 0 6px;font-size:14px}
 .modal-card p{margin:0 0 10px;line-height:1.45}
-.modal-card a{color:var(--accent-hover)}
+.modal-card a{color:color-mix(in srgb, hsl(from var(--accent) calc(h + 180) 75% 60%) 50%, var(--text))}
 .modal-card .muted{color:var(--text-dim);font-size:13px;opacity:.75}
 .modal-card ul{margin:0 0 10px;padding-left:18px}
 .modal-card li{margin-bottom:5px;line-height:1.4}
