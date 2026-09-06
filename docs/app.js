@@ -845,9 +845,6 @@
         btn: card.cfg.size > 3 ? ["Use " + (card.cfg.size - 1) + "×" + (card.cfg.size - 1), () => { cfg.size = card.cfg.size - 1; $("gridSize").value = cfg.size; syncFreeSpace(); saveSettings(); generate(newToken()); }] : null,
       });
     }
-    if (card && card.builtFromDefaults) {
-      msgs.push({ text: "Built from that seed using the default pools and filters, so it matches the original exactly.", btn: null });
-    }
     if (card && card.pastedFpMismatch) {
       msgs.push({ text: "That seed was made with different settings, so your card may not match theirs.", btn: null });
     }
@@ -1832,8 +1829,16 @@
     // the obvious button got a random card and lost what they had typed.
     // An empty box has no seed to roll, so it falls back to minting one.
     const newSeed = () => guard("Start a new card?", "New Seed", () => generate(newToken()));
-    const newCard = () => guard("Start a new card?", "New Card", () =>
-      $("seedInput").value.trim() ? applySeed() : generate(newToken()));
+    // A seed and a card are one to one, so "roll the current seed" a second time returns the
+    // same card and the button looks dead. So: if the box holds a seed that ISN'T the one on
+    // screen, it is something the user put there and New Card builds it. Otherwise there is
+    // nothing new to build and it rolls a fresh one. Pressing it always does something, and a
+    // seed you typed is never thrown away.
+    const newCard = () => guard("Start a new card?", "New Card", () => {
+      const typed = $("seedInput").value.trim();
+      if (typed && (!card || typed !== card.seed)) applySeed();
+      else generate(newToken());
+    });
     $("generateBtn").addEventListener("click", newCard);
     $("newCardBtn").addEventListener("click", newSeed);
     $("resetBtn").addEventListener("click", doReset);
@@ -1948,9 +1953,11 @@
       saveSettings();
       refreshCounts();
     }
+    // Still load-bearing: it makes the card build from the DEFAULT pools and filters, which
+    // is what lets a seed made elsewhere rebuild exactly. It used to raise a banner saying
+    // so; nothing is shown now, because a success needs no explaining.
     const fromDefaults = !!d.fp && d.fp === defaultFingerprint();
     generate(d.token, { cfg: d.cfg || undefined, defaults: fromDefaults });
-    card.builtFromDefaults = fromDefaults;
     // Only warn when the card genuinely can't match: the seed was made under settings that
     // are neither the viewer's nor the defaults.
     if (d.fp && !fromDefaults && card.fp !== d.fp) {
