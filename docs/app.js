@@ -279,7 +279,15 @@
   const b32 = (n, len) => { let s = ""; for (let i = 0; i < len; i++) { s = B32[n & 31] + s; n = n >>> 5; } return s; };
   const CAT_LETTER = { monster:"M", weapon:"W", objective:"O", talisman:"T", custom:"C" };
   const LETTER_CAT = Object.fromEntries(Object.entries(CAT_LETTER).map(([k, v]) => [v, k]));
-  const SEED_RE = /^MHGU-([3-9]|10)([FN])-((?:[MWOC][1-9])+)-([0-9A-Z]{6})-([0-9A-Z]{4})$/;
+  // Both patterns are BUILT from CAT_LETTER rather than spelling the letters out. They used
+  // to hardcode [MWOC], and adding the talisman pool's T silently broke every new seed:
+  // decodeSeed accepts anything by design, so a seed that no longer matched fell through to
+  // the catch-all branch and rolled a different card instead of failing loudly. Add a pool
+  // and this follows on its own — don't reintroduce a literal list.
+  const CAT_LETTERS = Object.values(CAT_LETTER).join("");
+  const CAT_PAIR_RE = new RegExp("([" + CAT_LETTERS + "])([1-9])", "g");
+  const SEED_RE = new RegExp(
+    "^MHGU-([3-9]|10)([FN])-((?:[" + CAT_LETTERS + "][1-9])+)-([0-9A-Z]{6})-([0-9A-Z]{4})$");
 
   // The one and only unseeded call in this file.
   const newToken = () => b32(Math.floor(Math.random() * 0x100000000), 6);
@@ -326,7 +334,8 @@
       const m = seed.match(SEED_RE);
       if (m) {
         const cats = {};
-        for (const [, letter, w] of m[3].matchAll(/([MWOC])([1-9])/g)) cats[LETTER_CAT[letter]] = +w;
+        // matchAll clones the regex, so sharing this /g instance across calls is safe.
+        for (const [, letter, w] of m[3].matchAll(CAT_PAIR_RE)) cats[LETTER_CAT[letter]] = +w;
         for (const c of CATS) if (!(c.id in cats)) cats[c.id] = 0;
         return { cfg: { size: +m[1], free: m[2] === "F", cats }, token: m[4], fp: m[5] };
       }
