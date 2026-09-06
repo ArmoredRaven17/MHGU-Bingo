@@ -1825,10 +1825,17 @@
       $("poolModal").classList.add("hidden");
     });
 
-    // Cards
-    const newCard = () => guard("Start a new card?", "New Card", () => generate(newToken()));
+    // Cards. Two different jobs, which is why they are two buttons:
+    //   New Seed (header, beside the seed box) mints a fresh seed and rolls it.
+    //   New Card (sidebar) rolls the seed you already have.
+    // New Card used to mint a token too, so a streamer who typed their own seed and pressed
+    // the obvious button got a random card and lost what they had typed.
+    // An empty box has no seed to roll, so it falls back to minting one.
+    const newSeed = () => guard("Start a new card?", "New Seed", () => generate(newToken()));
+    const newCard = () => guard("Start a new card?", "New Card", () =>
+      $("seedInput").value.trim() ? applySeed() : generate(newToken()));
     $("generateBtn").addEventListener("click", newCard);
-    $("newCardBtn").addEventListener("click", newCard);
+    $("newCardBtn").addEventListener("click", newSeed);
     $("resetBtn").addEventListener("click", doReset);
     const loadSeed = () => guard("Load this seed?", "Load Seed", applySeed);
     $("seedApply").addEventListener("click", loadSeed);
