@@ -1829,15 +1829,15 @@
     // the obvious button got a random card and lost what they had typed.
     // An empty box has no seed to roll, so it falls back to minting one.
     const newSeed = () => guard("Start a new card?", "New Seed", () => generate(newToken()));
-    // A seed and a card are one to one, so "roll the current seed" a second time returns the
-    // same card and the button looks dead. So: if the box holds a seed that ISN'T the one on
-    // screen, it is something the user put there and New Card builds it. Otherwise there is
-    // nothing new to build and it rolls a fresh one. Pressing it always does something, and a
-    // seed you typed is never thrown away.
+    // A seed and a card are one to one, so rebuilding the current seed returns the same card
+    // and the button looks dead. New Card therefore always rolls a NEW card, but keeps the
+    // settings the seed in the box carries — grid size, free space, pool weights — so a
+    // pasted seed sets up the game and this rerolls within it. Load is what rebuilds that
+    // exact card.
     const newCard = () => guard("Start a new card?", "New Card", () => {
-      const typed = $("seedInput").value.trim();
-      if (typed && (!card || typed !== card.seed)) applySeed();
-      else generate(newToken());
+      const raw = $("seedInput").value.trim();
+      if (raw) adoptSeedCfg(decodeSeed(raw));
+      generate(newToken());
     });
     $("generateBtn").addEventListener("click", newCard);
     $("newCardBtn").addEventListener("click", newSeed);
@@ -1941,18 +1941,23 @@
   const defaultFingerprint = () => defaultFp !== null ? defaultFp
     : (defaultFp = b32(hashStr(fingerprint(defaultFilters(), DEFAULT_POOL)), 4));
 
+  // The grid size, free space and pool weights a seed carries, made live. Shared by Load,
+  // which then rebuilds that exact card, and by New Card, which rerolls under them.
+  function adoptSeedCfg(d) {
+    if (!d || !d.cfg) return;
+    cfg = d.cfg;
+    $("gridSize").value = String(cfg.size);
+    syncFreeSpace();
+    buildCatRows();
+    saveSettings();
+    refreshCounts();
+  }
+
   function applySeed() {
     const raw = $("seedInput").value;
     if (!raw.trim()) return;
     const d = decodeSeed(raw);
-    if (d.cfg) {
-      cfg = d.cfg;
-      $("gridSize").value = String(cfg.size);
-      syncFreeSpace();
-      buildCatRows();
-      saveSettings();
-      refreshCounts();
-    }
+    adoptSeedCfg(d);
     // Still load-bearing: it makes the card build from the DEFAULT pools and filters, which
     // is what lets a seed made elsewhere rebuild exactly. It used to raise a banner saying
     // so; nothing is shown now, because a success needs no explaining.
